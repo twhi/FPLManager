@@ -14,7 +14,25 @@ class Analysis:
         self.get_price_data()
         self.get_player_position()
         self.calculate_form_per_price()
+        self.calculate_normalised_attribute('form')
+        self.calculate_normalised_attribute('price_change')
+        self.calculate_normalised_attribute('3_game_difficulty')
         self.team_list = self.get_team_list()
+
+    def min_max_values(self, attribute):
+        val_list = []
+        for item in self.master_table:
+            val_list.append(item[attribute])
+        val_list_float = [float(i) for i in val_list]
+        mm = {'min': float(min(val_list_float)), 'max': float(max(val_list_float))}
+        return mm
+
+    def calculate_normalised_attribute(self, attribute):
+        form_min_max = self.min_max_values(attribute)
+        for player in self.master_table:
+            player[attribute + '_n'] = round((float(player[attribute]) - form_min_max['min']) / (form_min_max['max'] - form_min_max['min']), 2)
+            print(player[attribute + '_n'], player['web_name'])
+
 
     def calculate_form_per_price(self):
         for player in self.master_table:
