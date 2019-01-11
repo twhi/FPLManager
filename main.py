@@ -6,69 +6,13 @@ import random
 import csv
 import pprint
 
-if __name__ == "__main__":
-    web = RequestsSession('', '')  # username, password
-    web.log_into_fpl()
-    if web.login_status.status_code == 200:
-        print('logged in successfully')
-        f_data = FplData(web.session)
-        p_data = PriceData(web)
-        analysis = Analysis(web.session, f_data, p_data)
-        m_data = analysis.master_table
-
 
 def filter_list_by_position(data, position):
     outlist = []
     for player in data:
         if player['position'] == position:
-            outlist.append({'web_name': player['web_name'], 'price': player['price'], 'form': player['form'],
-                            'price_change': player['price_change'], '3_game_difficulty': player['3_game_difficulty']})
+            outlist.append(player)
     return outlist
-
-
-def pick_team(gk, df, md, fw):
-    goalkeepers = pick_players(2, gk)
-    defenders = pick_players(5, df)
-    midfielders = pick_players(5, md)
-    forwards = pick_players(3, fw)
-    team = goalkeepers + defenders + midfielders + forwards
-    total_price = calculate_team_price(team)
-    total_form = calculate_team_form(team)
-    total_price_change = calculate_team_price_change(team)
-    total_difficulty = calculate_total_difficulty(team)
-    if total_price < 100:
-        return {'team': team, 'price': total_price, 'form': total_form, 'price_change': total_price_change,
-                '3_game_difficulty': total_difficulty}
-    else:
-        return False
-
-
-def calculate_total_difficulty(t):
-    diff = 0
-    for player in t:
-        diff += float(player['3_game_difficulty'])
-    return diff
-
-
-def calculate_team_price_change(t):
-    pc = 0
-    for player in t:
-        pc += float(player['price_change'])
-    return pc
-
-
-def calculate_team_price(t):
-    cost = 0
-    for player in t:
-        cost += float(player['price'])
-    return cost
-
-
-def calculate_team_form(t):
-    form = 0
-    for player in t:
-        form += float(player['form'])
-    return form
 
 
 def pick_players(num, dataset):
@@ -84,6 +28,21 @@ def pick_players(num, dataset):
     return player_list
 
 
+def pick_team(gk, df, md, fw):
+    goalkeepers = pick_players(2, gk)
+    defenders = pick_players(5, df)
+    midfielders = pick_players(5, md)
+    forwards = pick_players(3, fw)
+    team = goalkeepers + defenders + midfielders + forwards
+
+    total_budget = f_data.account_data['bank'] + f_data.account_data['total_balance']
+    total_price = sum_value(team, 'price')
+
+    if total_price < total_budget:
+        return team
+    else:
+        return False
+
 def monte_carlo():
     main_data = m_data.copy()
     gk = filter_list_by_position(main_data, 'G')
@@ -95,44 +54,110 @@ def monte_carlo():
     print('starting monte carlo')
     for i in range(10000):
         final_team = pick_team(gk, df, md, fw)
+        score = score_team(final_team)
         if final_team:
             team_list.append(final_team)
     return team_list
 
+def sum_value(t, attribute):
+    s = 0
+    for player in t:
+        s += float(player[attribute])
+    return round(s, 2)
 
 def max_key_value(data, attribute):
     # type - list of dicts
     val_list = []
     for item in data:
-       try:
-           val_list.append(item[attribute])
-       except:
-           return True
+        try:
+            val_list.append(item[attribute])
+        except:
+            return True
     return float(max(val_list))
 
-def postprocess(t_list):
-    form_max = max_key_value(t_list, 'form')
-    price_change_max = max_key_value(t_list, 'price_change')
-    three_difficulty_max = max_key_value(t_list, '3_game_difficulty')
 
-    final_list = []
-    for team in t_list:
-        team['form_norm'] = round(team['form'] / form_max, 1)
-        team['pc_norm'] = round(team['price_change'] / price_change_max, 1)
-        team['3diff_norm'] = round(team['3_game_difficulty'] / three_difficulty_max, 1)
-        score = team['form_norm'] + team['pc_norm'] - team['3diff_norm']
+def score_team(t):
+    sum_form_n = sum_value(t, 'form_n')
+    sum_price_change_n = sum_value(t, 'price_change_n')
+    sum_3_game_difficulty_n = sum_value(t, '3_game_difficulty_n')
+    sum_ict_index_n = sum_value(t, 'ict_index_n')
+    total_cost = sum_value(t, 'price')
+    return {'sum_form_n':sum_form_n, 'sum_price_change_n': sum_price_change_n, 'sum_3_game_difficulty_n': sum_3_game_difficulty_n, 'sum_ict_index_n': sum_ict_index_n, 'total_cost': total_cost}
 
-        if team['form_norm'] > 0.8:
-            final_list.append(team)
+def find_replacements(num_replacements, current_team, balance, master_list):
+    # make a copy of main data to ensure that the main data list isn't overwritten
+    main_data = master_list.copy()
+
+    # create position specific player lists
+    gk = filter_list_by_position(main_data, 'G')
+    df = filter_list_by_position(main_data, 'D')
+    md = filter_list_by_position(main_data, 'M')
+    fw = filter_list_by_position(main_data, 'F')
+    player_list = {'G': gk, 'D': df, 'M': md, 'F': fw}
+
+    new_team_list = []
+
+    # current team stats
+    c_team_stats = score_team(current_team)
+
+    print('searching for replacements')
+    for i in range(10000):
+
+        # make a copy of current team to ensure that it isn't overwritten
+        c_team = current_team.copy()
+        n_team = current_team.copy()
+
+        # carry out replacements
+        replacements = []
+        for i in range(num_replacements):
+            # choose random player to take out of squad
+            index_old = random.randrange(len(c_team))
+            player_out = c_team[index_old]
+
+            # choose random player to replace
+            index_new = random.randrange(len(player_list[player_out['position']]))
+            player_in = player_list[player_out['position']][index_new]
+
+            #
+            n_team[index_old] = player_in
+            replacements.append({'old': player_out, 'new': player_in})
+
+        # new team stats
+        n_team_stats = score_team(n_team)
+
+        if n_team_stats['total_cost'] <= balance:
+            if n_team_stats['sum_ict_index_n'] > c_team_stats['sum_ict_index_n']:
+                new_team_list.append({'team':n_team, 'stats':n_team_stats, 'replacements': replacements})
+
+    return new_team_list
 
 
-    return final_list
+if __name__ == "__main__":
+    web = RequestsSession('', '')  # username, password
+    web.log_into_fpl()
+    if web.login_status.status_code == 200:
+        print('logged in successfully')
+        f_data = FplData(web.session)
+        p_data = PriceData(web)
+        analysis = Analysis(web.session, f_data, p_data)
+        m_data = analysis.master_table
+        total_balance = f_data.account_data['bank'] + f_data.account_data['total_balance']
 
-# team_list = monte_carlo()
-# team_list = postprocess(team_list)
-# keys = team_list[0].keys()
-# with open('output.csv', 'w', newline='') as output_file:
-#     dict_writer = csv.DictWriter(output_file, keys)
-#     dict_writer.writeheader()
-#     dict_writer.writerows(team_list)
-# ender = True
+        # remove players in current team from master list to ensure that a new player is selected every time
+        team_name_list = [i['web_name'] for i in analysis.team_list]
+        for idx, player in enumerate(m_data):
+            if player['web_name'] in team_name_list:
+                del m_data[idx]
+
+        t_list = find_replacements(4, analysis.team_list, total_balance, m_data)
+
+        ender = True
+
+        # team_list = monte_carlo()
+        #
+        # keys = team_list[0].keys()
+        # with open('output.csv', 'w', newline='') as output_file:
+        #     dict_writer = csv.DictWriter(output_file, keys)
+        #     dict_writer.writeheader()
+        #     dict_writer.writerows(team_list)
+        # ender = True

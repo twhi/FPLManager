@@ -14,10 +14,19 @@ class Analysis:
         self.get_price_data()
         self.get_player_position()
         self.calculate_form_per_price()
-        self.calculate_normalised_attribute('form')
-        self.calculate_normalised_attribute('price_change')
-        self.calculate_normalised_attribute('3_game_difficulty')
+        self.normalise_values()
         self.team_list = self.get_team_list()
+        self.reduce_data()
+
+    def reduce_data(self):
+        for idx, player in enumerate(self.master_table):
+            if player['ict_index_n'] == 0:
+                del self.master_table[idx]
+
+    def normalise_values(self):
+        attributes = ['form', 'price_change', '3_game_difficulty', 'ict_index']
+        for atr in attributes:
+            self.calculate_normalised_attribute(atr)
 
     def min_max_values(self, attribute):
         val_list = []
@@ -31,7 +40,6 @@ class Analysis:
         form_min_max = self.min_max_values(attribute)
         for player in self.master_table:
             player[attribute + '_n'] = round((float(player[attribute]) - form_min_max['min']) / (form_min_max['max'] - form_min_max['min']), 2)
-            print(player[attribute + '_n'], player['web_name'])
 
 
     def calculate_form_per_price(self):
