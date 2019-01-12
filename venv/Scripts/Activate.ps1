@@ -27,7 +27,7 @@ function global:deactivate ([switch]$NonDestructive) {
 
 deactivate -nondestructive
 
-$env:VIRTUAL_ENV="C:\Users\whitehet.UKOUP\Desktop\fpl price change script\venv"
+$env:VIRTUAL_ENV="C:\Users\tomw_\Documents\Python projects\fpl_price_change_predictor\venv"
 
 if (! $env:VIRTUAL_ENV_DISABLE_PROMPT) {
     # Set the prompt to include the env name
