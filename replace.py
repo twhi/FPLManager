@@ -1,17 +1,15 @@
 import csv
 import random
 
-from main import analysis, sum_value
-
 
 class Replacement:
     def __init__(self, fpl_data, analysed_data):
         self.f_data = fpl_data
         self.analysis = analysed_data
         self.total_balance = self.f_data.account_data['bank'] + self.f_data.account_data['total_balance']
-        self.current_team = analysis.team_list
-        self.master_table = analysis.master_table.copy()
-        self.c_team_stats = self.score_team(self.current_team)
+        self.current_team = analysed_data.team_list
+        self.master_table = analysed_data.master_table.copy()
+        self.current_team_stats = self.score_team(self.current_team)
 
     def find_n_replacements(self, num_replacements, max_iterations=100000, order_by="total_score", num_teams=50):
         main_data_s = self.remove_currently_owned_players()
@@ -37,14 +35,13 @@ class Replacement:
         player_list = {'G': gk, 'D': df, 'M': md, 'F': fw}
         return player_list
 
-    @staticmethod
-    def score_team(t):
-        sum_form_n = sum_value(t, 'form_n')
-        sum_price_change_n = sum_value(t, 'price_change_n')
-        sum_3_game_difficulty_n = sum_value(t, '3_game_difficulty_n')
-        sum_ict_index_n = sum_value(t, 'ict_index_n')
+    def score_team(self, t):
+        sum_form_n = self.sum_value(t, 'form_n')
+        sum_price_change_n = self.sum_value(t, 'price_change_n')
+        sum_3_game_difficulty_n = self.sum_value(t, '3_game_difficulty_n')
+        sum_ict_index_n = self.sum_value(t, 'ict_index_n')
         total_score = round(sum_form_n + sum_price_change_n - sum_3_game_difficulty_n + sum_ict_index_n, 2)
-        total_cost = sum_value(t, 'price')
+        total_cost = self.sum_value(t, 'price')
         return {
             'sum_form_n': sum_form_n,
             'sum_price_change_n': sum_price_change_n,
@@ -89,25 +86,23 @@ class Replacement:
             n_team_stats = self.score_team(n_team)
 
             if n_team_stats['total_cost'] <= self.total_balance:
-                if n_team_stats['sum_ict_index_n'] > self.c_team_stats['sum_ict_index_n']:
-                    if n_team_stats['sum_form_n'] > self.c_team_stats['sum_form_n']:
-                        if n_team_stats['sum_3_game_difficulty_n'] < self.c_team_stats['sum_3_game_difficulty_n']:
-                            if n_team_stats['sum_price_change_n'] > self.c_team_stats['sum_price_change_n']:
+                if n_team_stats['sum_ict_index_n'] > self.current_team_stats['sum_ict_index_n']:
+                    if n_team_stats['sum_form_n'] > self.current_team_stats['sum_form_n']:
+                        if n_team_stats['sum_3_game_difficulty_n'] < self.current_team_stats['sum_3_game_difficulty_n']:
+                            if n_team_stats['sum_price_change_n'] > self.current_team_stats['sum_price_change_n']:
                                 new_team_list.append(
                                     {'team': n_team, 'stats': n_team_stats, 'replacements': replacements})
         return new_team_list
 
     def output_top_n(self, team_list, order_by, num_teams):
-        '''
-        'order_by' parameters:
-        'sum_form_n' - sum of the team's normalised form
-        'sum_price_change_n' - sum of the team's normalised price change
-        'sum_3_game_difficulty_n' - sum of the team's normalised game difficulty (higher = harder)
-        'sum_ict_index_n' - sum of the team's ICT index (overall threat of the players)
-        'total_score' - sum of the above
-        '''
+        # 'order_by' parameters:
+        # 'sum_form_n' - sum of the team's normalised form
+        # 'sum_price_change_n' - sum of the team's normalised price change
+        # 'sum_3_game_difficulty_n' - sum of the team's normalised game difficulty (higher = harder)
+        # 'sum_ict_index_n' - sum of the team's ICT index (overall threat of the players)
+        # 'total_score' - sum of the above
 
-        # sort team list
+        # sort team list by specified parameter
         if order_by == 'sum_3_game_difficulty_n':
             team_list_sorted = sorted(team_list, key=lambda k: k['stats'][order_by])
         else:
@@ -139,12 +134,12 @@ class Replacement:
                 'new team 3 game difficulty': team['stats']['sum_3_game_difficulty_n'],
                 'new team score': team['stats']['total_score'],
                 'new team cost': team['stats']['total_cost'],
-                'old team form': self.c_team_stats['sum_form_n'],
-                'old team ICT': self.c_team_stats['sum_ict_index_n'],
-                'old team price change': self.c_team_stats['sum_price_change_n'],
-                'old team 3 game difficulty': self.c_team_stats['sum_3_game_difficulty_n'],
-                'old team score': self.c_team_stats['total_score'],
-                'old team cost': self.c_team_stats['total_cost'],
+                'old team form': self.current_team_stats['sum_form_n'],
+                'old team ICT': self.current_team_stats['sum_ict_index_n'],
+                'old team price change': self.current_team_stats['sum_price_change_n'],
+                'old team 3 game difficulty': self.current_team_stats['sum_3_game_difficulty_n'],
+                'old team score': self.current_team_stats['total_score'],
+                'old team cost': self.current_team_stats['total_cost'],
             })
 
         # output data to csv
@@ -165,3 +160,10 @@ class Replacement:
             dict_writer = csv.DictWriter(output_file, keys)
             dict_writer.writeheader()
             dict_writer.writerows(output)
+
+    @staticmethod
+    def sum_value(t, attribute):
+        s = 0
+        for player in t:
+            s += float(player[attribute])
+        return round(s, 2)

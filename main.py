@@ -49,13 +49,6 @@ def monte_carlo():
     return team_list
 
 
-def sum_value(t, attribute):
-    s = 0
-    for player in t:
-        s += float(player[attribute])
-    return round(s, 2)
-
-
 def max_key_value(data, attribute):
     # type - list of dicts
     val_list = []
