@@ -76,7 +76,7 @@ if __name__ == "__main__":
     f_data = open_pickle("f_data.pickle")
 
     rep = Replacement(f_data, analysis)
-    rep.find_n_replacements(4, max_iterations=1000000, order_by="sum_form_n")
+    rep.find_n_replacements(4, max_iterations=10000, order_by="sum_form_n")
 
 # if __name__ == "__main__":
 #     web = RequestsSession('', '')  # username, password

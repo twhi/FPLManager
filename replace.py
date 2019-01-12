@@ -2,10 +2,48 @@ import csv
 import random
 
 
+def filter_list_by_position(data, position):
+    """
+    :param data: List of player dictionaries
+    :param position: Player position code, either 'G', 'D', 'M' or 'F'
+    :return:
+    """
+    outlist = []
+    for player in data:
+        if player['position'] == position:
+            outlist.append(player)
+    return outlist
+
+
+def generate_csv(output):
+    """
+    :param output: A list of dicts
+
+    Will output a csv named output.csv
+    TODO: give this method some sort of dynamic naming functionality
+    """
+    keys = output[0].keys()
+    with open('output.csv', 'w', newline='') as output_file:
+        dict_writer = csv.DictWriter(output_file, keys)
+        dict_writer.writeheader()
+        dict_writer.writerows(output)
+
+
+def sum_value(t, attribute):
+    """
+    :param t: A list of player dictionaries
+    :param attribute: The attribute that you want to sum
+    :return: The sum of the specified attribute, rounded to 2 d.p
+    """
+    s = 0
+    for player in t:
+        s += float(player[attribute])
+    return round(s, 2)
+
+
 class Replacement:
     def __init__(self, fpl_data, analysed_data):
         self.f_data = fpl_data
-        self.analysis = analysed_data
         self.total_balance = self.f_data.account_data['bank'] + self.f_data.account_data['total_balance']
         self.current_team = analysed_data.team_list
         self.master_table = analysed_data.master_table.copy()
@@ -14,7 +52,7 @@ class Replacement:
     def find_n_replacements(self, num_replacements, max_iterations=100000, order_by="total_score", num_teams=50):
         main_data_s = self.remove_currently_owned_players()
         player_list = self.split_main_data_by_position(main_data_s)
-        team_list = self.start_monte_carlo(max_iterations, num_replacements, player_list)
+        team_list = self.start_monte_carlo(max_iterations, num_replacements, player_list, desired=['Rico'])
         self.output_top_n(team_list, order_by, num_teams)
 
     def remove_currently_owned_players(self):
@@ -26,22 +64,24 @@ class Replacement:
                 del main_data[idx]
         return main_data
 
-    def split_main_data_by_position(self, m_data):
+    @staticmethod
+    def split_main_data_by_position(m_data):
         # create position specific player dict
-        gk = self.filter_list_by_position(m_data, 'G')
-        df = self.filter_list_by_position(m_data, 'D')
-        md = self.filter_list_by_position(m_data, 'M')
-        fw = self.filter_list_by_position(m_data, 'F')
+        gk = filter_list_by_position(m_data, 'G')
+        df = filter_list_by_position(m_data, 'D')
+        md = filter_list_by_position(m_data, 'M')
+        fw = filter_list_by_position(m_data, 'F')
         player_list = {'G': gk, 'D': df, 'M': md, 'F': fw}
         return player_list
 
-    def score_team(self, t):
-        sum_form_n = self.sum_value(t, 'form_n')
-        sum_price_change_n = self.sum_value(t, 'price_change_n')
-        sum_3_game_difficulty_n = self.sum_value(t, '3_game_difficulty_n')
-        sum_ict_index_n = self.sum_value(t, 'ict_index_n')
+    @staticmethod
+    def score_team(t):
+        sum_form_n = sum_value(t, 'form_n')
+        sum_price_change_n = sum_value(t, 'price_change_n')
+        sum_3_game_difficulty_n = sum_value(t, '3_game_difficulty_n')
+        sum_ict_index_n = sum_value(t, 'ict_index_n')
         total_score = round(sum_form_n + sum_price_change_n - sum_3_game_difficulty_n + sum_ict_index_n, 2)
-        total_cost = self.sum_value(t, 'price')
+        total_cost = sum_value(t, 'price')
         return {
             'sum_form_n': sum_form_n,
             'sum_price_change_n': sum_price_change_n,
@@ -51,7 +91,7 @@ class Replacement:
             'total_score': total_score
         }
 
-    def start_monte_carlo(self, max_iterations, num_replacements, player_list):
+    def start_monte_carlo(self, max_iterations, num_replacements, player_list, desired):
         new_team_list = []
         for i in range(max_iterations):
             # make a copy of current team to ensure that it isn't overwritten
@@ -63,8 +103,16 @@ class Replacement:
             for pos in player_list:
                 p_list[pos] = player_list[pos].copy()
 
-            # carry out replacements
+            # initialise replacements
             replacements = []
+
+            # carry out desired replacements
+            for player in desired:
+                newp = p_list['D']
+                # TODO: find desired player in p_list, replace random player with this player, delete desired player from p_list
+
+            # carry out random replacements
+
             for j in range(num_replacements):
                 # choose random player to take out of squad
                 index_old = random.randrange(len(c_team))
@@ -143,27 +191,4 @@ class Replacement:
             })
 
         # output data to csv
-        self.generate_csv(output)
-
-    @staticmethod
-    def filter_list_by_position(data, position):
-        outlist = []
-        for player in data:
-            if player['position'] == position:
-                outlist.append(player)
-        return outlist
-
-    @staticmethod
-    def generate_csv(output):
-        keys = output[0].keys()
-        with open('output.csv', 'w', newline='') as output_file:
-            dict_writer = csv.DictWriter(output_file, keys)
-            dict_writer.writeheader()
-            dict_writer.writerows(output)
-
-    @staticmethod
-    def sum_value(t, attribute):
-        s = 0
-        for player in t:
-            s += float(player[attribute])
-        return round(s, 2)
+        generate_csv(output)
