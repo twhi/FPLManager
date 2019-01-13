@@ -48,11 +48,12 @@ class Replacement:
         self.current_team = analysed_data.team_list
         self.master_table = analysed_data.master_table.copy()
         self.current_team_stats = self.score_team(self.current_team)
+        self.get_position_indexes()
 
-    def find_n_replacements(self, num_replacements, max_iterations=100000, order_by="total_score", num_teams=50):
+    def find_n_replacements(self, num_replacements, desired, max_iterations=100000, order_by="total_score", num_teams=50):
         main_data_s = self.remove_currently_owned_players()
         player_list = self.split_main_data_by_position(main_data_s)
-        team_list = self.start_monte_carlo(max_iterations, num_replacements, player_list, desired=['Rico'])
+        team_list = self.start_monte_carlo(max_iterations, num_replacements, player_list, desired)
         self.output_top_n(team_list, order_by, num_teams)
 
     def remove_currently_owned_players(self):
@@ -91,8 +92,33 @@ class Replacement:
             'total_score': total_score
         }
 
+    @staticmethod
+    def find_index_by_web_name(web_name, p_list):
+        for pos in p_list:
+            for idx, player in enumerate(p_list[pos]):
+                if web_name == player['web_name']:
+                    return {'index': idx, 'position': pos}
+        return False
+
+    def get_position_indexes(self):
+        """
+        Finds the indexes within the team in which each position occurs.
+        Helps when finding a desired replacement within the Monte Carlo method.
+        :return:
+        """
+        self.position_indicies = {
+            'G': [],
+            'D': [],
+            'M': [],
+            'F': []
+        }
+        for idx, player in enumerate(self.current_team):
+            self.position_indicies[player['position']].append(idx)
+
     def start_monte_carlo(self, max_iterations, num_replacements, player_list, desired):
         new_team_list = []
+
+        tester = True
         for i in range(max_iterations):
             # make a copy of current team to ensure that it isn't overwritten
             c_team = self.current_team.copy()
@@ -100,20 +126,43 @@ class Replacement:
 
             # make a copy of player_list
             p_list = {}
+            p_indicies = {}
             for pos in player_list:
                 p_list[pos] = player_list[pos].copy()
+                p_indicies[pos] = self.position_indicies[pos].copy()
 
             # initialise replacements
             replacements = []
 
             # carry out desired replacements
             for player in desired:
-                newp = p_list['D']
-                # TODO: find desired player in p_list, replace random player with this player, delete desired player from p_list
+
+                player_info = self.find_index_by_web_name(player, p_list) # find desired player in p_list
+                player_in = p_list[player_info['position']][player_info['index']] # get desired player from p_list
+
+                # delete desired player from p_list
+                del p_list[player_info['position']][player_info['index']]
+
+                # choose player to replace
+                idx = random.randrange(len(p_indicies[player_info['position']]))
+                index_old = p_indicies[player_info['position']][idx]
+                if player == 'Salah':
+                    sorter = idx
+                    sorter2 = index_old
+
+                player_out = c_team[index_old]
+                # del c_team[index_old]
+                del p_indicies[player_info['position']][idx]
+
+
+                # add new player to team list
+                n_team[player_out['index']] = player_in
+
+                # update replacement object
+                replacements.append({'old': player_out, 'new': player_in})
 
             # carry out random replacements
-
-            for j in range(num_replacements):
+            for j in range(num_replacements - len(desired)):
                 # choose random player to take out of squad
                 index_old = random.randrange(len(c_team))
                 player_out = c_team[index_old]
@@ -125,9 +174,9 @@ class Replacement:
                 del p_list[player_out['position']][index_new]
 
                 # add new player to team list
-                n_team[index_old] = player_in
+                n_team[player_out['index']] = player_in
 
-                # create replacement object
+                # update replacement object
                 replacements.append({'old': player_out, 'new': player_in})
 
             # score new team

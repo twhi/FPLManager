@@ -1,4 +1,8 @@
 from replace import Replacement
+from requests_session import RequestsSession
+from fpl_data import FplData
+from price_data import PriceData
+from analysis import Analysis
 import random
 import pickle
 
@@ -76,7 +80,7 @@ if __name__ == "__main__":
     f_data = open_pickle("f_data.pickle")
 
     rep = Replacement(f_data, analysis)
-    rep.find_n_replacements(4, max_iterations=10000, order_by="sum_form_n")
+    rep.find_n_replacements(4, max_iterations=100000, order_by="sum_form_n", desired=['Salah', 'Richarlison'])
 
 # if __name__ == "__main__":
 #     web = RequestsSession('', '')  # username, password
@@ -86,3 +90,5 @@ if __name__ == "__main__":
 #         f_data = FplData(web.session)
 #         p_data = PriceData(web)
 #         analysis = Analysis(web.session, f_data, p_data)
+#         save_to_pickle(f_data, "f_data")
+#         save_to_pickle(analysis, "analysis")

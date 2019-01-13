@@ -17,6 +17,11 @@ class Analysis:
         self.normalise_values()
         self.team_list = self.get_team_list()
         self.reduce_data()
+        self.give_current_team_indexes()
+
+    def give_current_team_indexes(self):
+        for idx, player in enumerate(self.team_list):
+            player['index'] = idx
 
     def reduce_data(self):
         for idx, player in enumerate(self.master_table):
