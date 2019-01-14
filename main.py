@@ -75,20 +75,31 @@ def open_pickle(path_to_file):
     return f
 
 
-if __name__ == "__main__":
-    analysis = open_pickle("analysis.pickle")
-    f_data = open_pickle("f_data.pickle")
-
-    rep = Replacement(f_data, analysis)
-    rep.find_n_replacements(4, max_iterations=100000, order_by="sum_form_n", desired=['Salah', 'Richarlison'])
-
 # if __name__ == "__main__":
-#     web = RequestsSession('', '')  # username, password
-#     web.log_into_fpl()
-#     if web.login_status.status_code == 200:
-#         print('logged in successfully')
-#         f_data = FplData(web.session)
-#         p_data = PriceData(web)
-#         analysis = Analysis(web.session, f_data, p_data)
-#         save_to_pickle(f_data, "f_data")
-#         save_to_pickle(analysis, "analysis")
+#     analysis = open_pickle("analysis.pickle")
+#     f_data = open_pickle("f_data.pickle")
+# 
+#     rep = Replacement(f_data, analysis)
+#     rep.find_n_replacements(4, max_iterations=1000000, order_by="total_score", desired=['Salah'])
+
+if __name__ == "__main__":
+    username = ''
+    password = ''
+
+    if not username or not password:
+        print('\nProcess failed. Incomplete credentials supplied.')
+        exit()
+
+    web = RequestsSession(username, password)  # username, password
+    web.log_into_fpl()
+    if web.login_status.status_code == 200:
+        print('logged in successfully')
+        f_data = FplData(web.session)
+        p_data = PriceData(web)
+        analysis = Analysis(web.session, f_data, p_data)
+        save_to_pickle(f_data, "f_data")
+        save_to_pickle(analysis, "analysis")
+        rep = Replacement(f_data, analysis)
+        rep.find_n_replacements(4, max_iterations=10000000, order_by="total_score", desired=['Salah'])
+        # TODO: Next time, perhaps remove the goal keepers from the simulation, it seems to always suggest goalies and i don't really care for them
+        # Could this be done by removing the 'G' bin from the position index method from the replace class?

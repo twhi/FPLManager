@@ -98,6 +98,7 @@ class Replacement:
             for idx, player in enumerate(p_list[pos]):
                 if web_name == player['web_name']:
                     return {'index': idx, 'position': pos}
+        tester = 'True'
         return False
 
     def get_position_indexes(self):
@@ -136,37 +137,30 @@ class Replacement:
 
             # carry out desired replacements
             for player in desired:
+                player_info = self.find_index_by_web_name(player, p_list)           # find desired player index in p_list
+                player_in = p_list[player_info['position']][player_info['index']]   # get desired player from p_list
+                del p_list[player_info['position']][player_info['index']]           # delete desired player from p_list
 
-                player_info = self.find_index_by_web_name(player, p_list) # find desired player in p_list
-                player_in = p_list[player_info['position']][player_info['index']] # get desired player from p_list
+                idx = random.randrange(len(p_indicies[player_info['position']]))    # select a random index from the desired player's postion
+                index_old = p_indicies[player_info['position']][idx]                # convert this to a player index
+                player_out = c_team[index_old]                                      # get the player out dict for this randomly selected player
+                del p_indicies[player_info['position']][idx]                        # remove the selected index from the list so it can't be selected again
+                if len(p_indicies[player_info['position']]) == 0:
+                    del p_indicies[player_info['position']]
 
-                # delete desired player from p_list
-                del p_list[player_info['position']][player_info['index']]
-
-                # choose player to replace
-                idx = random.randrange(len(p_indicies[player_info['position']]))
-                index_old = p_indicies[player_info['position']][idx]
-                if player == 'Salah':
-                    sorter = idx
-                    sorter2 = index_old
-
-                player_out = c_team[index_old]
-                # del c_team[index_old]
-                del p_indicies[player_info['position']][idx]
-
-
-                # add new player to team list
-                n_team[player_out['index']] = player_in
-
-                # update replacement object
-                replacements.append({'old': player_out, 'new': player_in})
+                n_team[player_out['index']] = player_in                             # add new player to team list
+                replacements.append({'old': player_out, 'new': player_in})          # update replacement object
 
             # carry out random replacements
             for j in range(num_replacements - len(desired)):
                 # choose random player to take out of squad
-                index_old = random.randrange(len(c_team))
-                player_out = c_team[index_old]
-                del c_team[index_old]
+                pos_idx = random.choice(list(p_indicies.keys()))                    # choose a random position to replace
+                idx = random.randrange(len(p_indicies[pos_idx]))                    # choose a random player from that position
+                index_old = p_indicies[pos_idx][idx]
+                player_out = c_team[index_old]                                      # get chosen player dict
+                del p_indicies[pos_idx][idx]                                        # remove the selected index from the list so it can't be selected again
+                if len(p_indicies[pos_idx]) == 0:
+                    del p_indicies[pos_idx]
 
                 # choose random player to replace
                 index_new = random.randrange(len(p_list[player_out['position']]))
@@ -179,7 +173,7 @@ class Replacement:
                 # update replacement object
                 replacements.append({'old': player_out, 'new': player_in})
 
-            # score new team
+                # score new team
             n_team_stats = self.score_team(n_team)
 
             if n_team_stats['total_cost'] <= self.total_balance:
