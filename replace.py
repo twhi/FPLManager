@@ -1,6 +1,6 @@
 import csv
 import random
-
+import uuid
 
 def filter_list_by_position(data, position):
     """
@@ -23,7 +23,8 @@ def generate_csv(output):
     TODO: give this method some sort of dynamic naming functionality
     """
     keys = output[0].keys()
-    with open('output.csv', 'w', newline='') as output_file:
+    unique_filename = str(uuid.uuid4())
+    with open('./output_data/' + unique_filename + '.csv', 'w', newline='') as output_file:
         dict_writer = csv.DictWriter(output_file, keys)
         dict_writer.writeheader()
         dict_writer.writerows(output)
@@ -48,13 +49,23 @@ class Replacement:
         self.current_team = analysed_data.team_list
         self.master_table = analysed_data.master_table.copy()
         self.current_team_stats = self.score_team(self.current_team)
-        self.get_position_indexes()
 
-    def find_n_replacements(self, num_replacements, desired, max_iterations=100000, order_by="total_score", num_teams=50):
+
+    def find_n_replacements(self, num_replacements, desired, outfield_only, max_iterations=100000, order_by="total_score", num_teams=50):
         main_data_s = self.remove_currently_owned_players()
         player_list = self.split_main_data_by_position(main_data_s)
+        self.outfield_only = outfield_only
+        self.get_position_indexes()
+
+        if self.outfield_only:
+            del player_list['G']
+
         team_list = self.start_monte_carlo(max_iterations, num_replacements, player_list, desired)
-        self.output_top_n(team_list, order_by, num_teams)
+
+        if len(team_list) > 0:
+            self.output_top_n(team_list, order_by, num_teams)
+        else:
+            print('\nNo team improvements found for given input paramters. Sorry m8.')
 
     def remove_currently_owned_players(self):
         # remove players in current team from master list to ensure that a new player is selected every time
@@ -116,6 +127,9 @@ class Replacement:
         for idx, player in enumerate(self.current_team):
             self.position_indicies[player['position']].append(idx)
 
+        if self.outfield_only:
+            del self.position_indicies['G']
+
     def start_monte_carlo(self, max_iterations, num_replacements, player_list, desired):
         new_team_list = []
 
@@ -173,16 +187,27 @@ class Replacement:
                 # update replacement object
                 replacements.append({'old': player_out, 'new': player_in})
 
-                # score new team
+            # score new team
             n_team_stats = self.score_team(n_team)
 
+            # # only keep simulated team if it outscores the previous team on ICT index, form, 3 game difficulty and price change probability
+            # if n_team_stats['total_cost'] <= self.total_balance:
+            #     if n_team_stats['sum_ict_index_n'] > self.current_team_stats['sum_ict_index_n']:
+            #         if n_team_stats['sum_form_n'] > self.current_team_stats['sum_form_n']:
+            #             if n_team_stats['sum_3_game_difficulty_n'] < self.current_team_stats['sum_3_game_difficulty_n']:
+            #                 if n_team_stats['sum_price_change_n'] > self.current_team_stats['sum_price_change_n']:
+            #                     new_team_list.append(
+            #                         {'team': n_team, 'stats': n_team_stats, 'replacements': replacements})
+
+            # only keep simulated team if it outscores the previous team on ICT index, form, 3 game difficulty and price change probability
             if n_team_stats['total_cost'] <= self.total_balance:
-                if n_team_stats['sum_ict_index_n'] > self.current_team_stats['sum_ict_index_n']:
-                    if n_team_stats['sum_form_n'] > self.current_team_stats['sum_form_n']:
-                        if n_team_stats['sum_3_game_difficulty_n'] < self.current_team_stats['sum_3_game_difficulty_n']:
-                            if n_team_stats['sum_price_change_n'] > self.current_team_stats['sum_price_change_n']:
-                                new_team_list.append(
-                                    {'team': n_team, 'stats': n_team_stats, 'replacements': replacements})
+                if n_team_stats['total_score'] > self.current_team_stats['total_score']:
+                    new_team_list.append({
+                        'team': n_team,
+                        'stats': n_team_stats,
+                        'replacements': replacements
+                    })
+
         return new_team_list
 
     def output_top_n(self, team_list, order_by, num_teams):

@@ -37,7 +37,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="C:\Users\tomw_\Documents\Python projects\fpl_price_change_predictor\venv"
+VIRTUAL_ENV="C:\Users\whitehet.UKOUP\Documents\fpl_price_change_predictor\venv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"

@@ -100,6 +100,6 @@ if __name__ == "__main__":
         save_to_pickle(f_data, "f_data")
         save_to_pickle(analysis, "analysis")
         rep = Replacement(f_data, analysis)
-        rep.find_n_replacements(4, max_iterations=10000000, order_by="total_score", desired=['Salah'])
+        rep.find_n_replacements(num_replacements=2, max_iterations=1000000, order_by="sum_price_change_n", desired=['Nasri'], num_teams=100, outfield_only=True)
         # TODO: Next time, perhaps remove the goal keepers from the simulation, it seems to always suggest goalies and i don't really care for them
-        # Could this be done by removing the 'G' bin from the position index method from the replace class?
+        # started this with the outfield_only parameter, but this needs to be refactored into a more robust/clear manner
