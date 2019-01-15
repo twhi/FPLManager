@@ -49,6 +49,8 @@ class Replacement:
         self.current_team = analysed_data.team_list
         self.master_table = analysed_data.master_table.copy()
         self.current_team_stats = self.score_team(self.current_team)
+        self.outfield_only = None
+        self.position_indicies = None
 
 
     def find_n_replacements(self, num_replacements, desired, outfield_only, max_iterations=100000, order_by="total_score", num_teams=50):
@@ -92,6 +94,7 @@ class Replacement:
         sum_price_change_n = sum_value(t, 'price_change_n')
         sum_3_game_difficulty_n = sum_value(t, '3_game_difficulty_n')
         sum_ict_index_n = sum_value(t, 'ict_index_n')
+        sum_KPI_n = sum_value(t, 'KPI_n')
         total_score = round(sum_form_n + sum_price_change_n - sum_3_game_difficulty_n + sum_ict_index_n, 2)
         total_cost = sum_value(t, 'price')
         return {
@@ -99,6 +102,7 @@ class Replacement:
             'sum_price_change_n': sum_price_change_n,
             'sum_3_game_difficulty_n': sum_3_game_difficulty_n,
             'sum_ict_index_n': sum_ict_index_n,
+            'sum_KPI_n': sum_KPI_n,
             'total_cost': total_cost,
             'total_score': total_score
         }
@@ -109,7 +113,6 @@ class Replacement:
             for idx, player in enumerate(p_list[pos]):
                 if web_name == player['web_name']:
                     return {'index': idx, 'position': pos}
-        tester = 'True'
         return False
 
     def get_position_indexes(self):
@@ -133,7 +136,6 @@ class Replacement:
     def start_monte_carlo(self, max_iterations, num_replacements, player_list, desired):
         new_team_list = []
 
-        tester = True
         for i in range(max_iterations):
             # make a copy of current team to ensure that it isn't overwritten
             c_team = self.current_team.copy()
@@ -190,23 +192,23 @@ class Replacement:
             # score new team
             n_team_stats = self.score_team(n_team)
 
-            # # only keep simulated team if it outscores the previous team on ICT index, form, 3 game difficulty and price change probability
-            # if n_team_stats['total_cost'] <= self.total_balance:
-            #     if n_team_stats['sum_ict_index_n'] > self.current_team_stats['sum_ict_index_n']:
-            #         if n_team_stats['sum_form_n'] > self.current_team_stats['sum_form_n']:
-            #             if n_team_stats['sum_3_game_difficulty_n'] < self.current_team_stats['sum_3_game_difficulty_n']:
-            #                 if n_team_stats['sum_price_change_n'] > self.current_team_stats['sum_price_change_n']:
-            #                     new_team_list.append(
-            #                         {'team': n_team, 'stats': n_team_stats, 'replacements': replacements})
-
             # only keep simulated team if it outscores the previous team on ICT index, form, 3 game difficulty and price change probability
             if n_team_stats['total_cost'] <= self.total_balance:
-                if n_team_stats['total_score'] > self.current_team_stats['total_score']:
-                    new_team_list.append({
-                        'team': n_team,
-                        'stats': n_team_stats,
-                        'replacements': replacements
-                    })
+                if n_team_stats['sum_ict_index_n'] > self.current_team_stats['sum_ict_index_n']:
+                    if n_team_stats['sum_form_n'] > self.current_team_stats['sum_form_n']:
+                        if n_team_stats['sum_3_game_difficulty_n'] < self.current_team_stats['sum_3_game_difficulty_n']:
+                            if n_team_stats['sum_price_change_n'] > self.current_team_stats['sum_price_change_n']:
+                                new_team_list.append(
+                                    {'team': n_team, 'stats': n_team_stats, 'replacements': replacements})
+
+            # # only keep simulated team if it outscores the previous team on ICT index, form, 3 game difficulty and price change probability
+            # if n_team_stats['total_cost'] <= self.total_balance:
+            #     if n_team_stats['sum_KPI_n'] > self.current_team_stats['sum_KPI_n']:
+            #         new_team_list.append({
+            #             'team': n_team,
+            #             'stats': n_team_stats,
+            #             'replacements': replacements
+            #         })
 
         return new_team_list
 
@@ -249,11 +251,13 @@ class Replacement:
                 'new team price change': team['stats']['sum_price_change_n'],
                 'new team 3 game difficulty': team['stats']['sum_3_game_difficulty_n'],
                 'new team score': team['stats']['total_score'],
+                'new team KPI': team['stats']['sum_KPI_n'],
                 'new team cost': team['stats']['total_cost'],
                 'old team form': self.current_team_stats['sum_form_n'],
                 'old team ICT': self.current_team_stats['sum_ict_index_n'],
                 'old team price change': self.current_team_stats['sum_price_change_n'],
                 'old team 3 game difficulty': self.current_team_stats['sum_3_game_difficulty_n'],
+                'old team KPI': self.current_team_stats['sum_KPI_n'],
                 'old team score': self.current_team_stats['total_score'],
                 'old team cost': self.current_team_stats['total_cost'],
             })

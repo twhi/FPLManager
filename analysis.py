@@ -9,9 +9,11 @@ class Analysis:
         self.available_money = fpl_data.account_data['bank']
         self.team_info = fpl_data.team_data
         self.player_price_data = price_data.player_price_data
+        self.player_stats_data = price_data.player_stats_data
 
         self.get_game_difficulties()
         self.get_price_data()
+        self.get_stats_data()
         self.get_player_position()
         self.calculate_form_per_price()
         self.normalise_values()
@@ -29,7 +31,7 @@ class Analysis:
                 del self.master_table[idx]
 
     def normalise_values(self):
-        attributes = ['form', 'price_change', '3_game_difficulty', 'ict_index']
+        attributes = ['form', 'price_change', '3_game_difficulty', 'ict_index', 'KPI']
         for atr in attributes:
             self.calculate_normalised_attribute(atr)
 
@@ -77,6 +79,13 @@ class Analysis:
                 if player[1] == p['web_name']:
                     p['price_change'] = player[14]
                     p['price'] = player[6]
+                    break
+
+    def get_stats_data(self):
+        for p in self.master_table:
+            for player in self.player_stats_data:
+                if player[1] == p['web_name']:
+                    p['KPI'] = player[13]
                     break
 
     def get_game_difficulties(self):

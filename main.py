@@ -100,6 +100,15 @@ if __name__ == "__main__":
         save_to_pickle(f_data, "f_data")
         save_to_pickle(analysis, "analysis")
         rep = Replacement(f_data, analysis)
-        rep.find_n_replacements(num_replacements=2, max_iterations=1000000, order_by="sum_price_change_n", desired=['Nasri'], num_teams=100, outfield_only=True)
-        # TODO: Next time, perhaps remove the goal keepers from the simulation, it seems to always suggest goalies and i don't really care for them
-        # started this with the outfield_only parameter, but this needs to be refactored into a more robust/clear manner
+        rep.find_n_replacements(num_replacements=3, max_iterations=5000000, order_by="total_score", desired=[],
+                                num_teams=100, outfield_only=True)
+
+        # TODO
+        # refactoring within the replace class
+        # split squad into substitutions and main squad and optimise each separately.
+            # main squad - optimise for total score
+            # subs - optimise for price change and lowest cost
+        # end selenium and requests session once data has been scraped from the web
+        # perhaps lift the KPI stat from here - http://www.fplstatistics.co.uk/Home/Stats/0, this guy seems a lot smarter than me
+        # create a fully new squad (wildcard) optimised similarly to find_n_replacements
+        # choose players to remove
