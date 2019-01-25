@@ -1,13 +1,11 @@
 import json
-
-from selenium_session import SeleniumSession
-from player_stats_url import stats_url
+from FPLManager.player_stats_url import stats_url
 
 
-class PriceData(SeleniumSession):
+class PriceData:
 
     def __init__(self, web_object):
-        super().__init__(web_object)
+        print('Getting player price change data...')
         self.web_object = web_object
         self.price_data_url = self.find_price_data_url()
         self.player_price_data = self.get_player_price_data()

@@ -4,10 +4,11 @@ import json
 class FplData:
 
     def __init__(self, session):
+        print('Getting FPL data...')
         self.session = session
         self.account_data = self.get_unique_account_data()
-        self.team_data = self.get_team_data()
-        self.master_data = self.get_master_data()
+        self.team_info = self.get_team_data()
+        self.master_table = self.get_master_table()
 
     def get_unique_account_data(self):
         data = json.loads(self.session.get('https://fantasy.premierleague.com/drf/bootstrap-dynamic').text)
@@ -24,7 +25,7 @@ class FplData:
         team_data_s = self.session.get(team_data_url).text
         return json.loads(team_data_s)['picks']
 
-    def get_master_data(self):
+    def get_master_table(self):
         master_table_s = self.session.get('https://fantasy.premierleague.com/drf/elements').text
         master_table = json.loads(master_table_s)
         return master_table

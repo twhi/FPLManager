@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/fpl price change script.iml" filepath="$PROJECT_DIR$/.idea/fpl price change script.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/FPLManager.iml" filepath="$PROJECT_DIR$/.idea/FPLManager.iml" />
     </modules>
   </component>
 </project>

@@ -1,33 +1,51 @@
 import json
+from FPLManager.fpl_data import FplData
+from FPLManager.price_data import PriceData
 
+class ProcessData(FplData, PriceData):
 
-class Analysis:
+    def __init__(self, web):
+        # initlialise web stuff
+        self.session = web.session
+        self.driver = web.driver
 
-    def __init__(self, session, fpl_data, price_data):
-        self.session = session
-        self.master_table = fpl_data.master_data
-        self.available_money = fpl_data.account_data['bank']
-        self.team_info = fpl_data.team_data
-        self.player_price_data = price_data.player_price_data
-        self.player_stats_data = price_data.player_stats_data
+        # initialise inherited classes, these grab data from the web
+        FplData.__init__(self, self.session)
+        PriceData.__init__(self, web)
+
+        self.total_balance = round(self.account_data['bank'] + self.account_data['total_balance'], 1)
 
         self.get_game_difficulties()
         self.get_price_data()
         self.get_stats_data()
         self.get_player_position()
-        self.calculate_form_per_price()
         self.normalise_values()
+
         self.team_list = self.get_team_list()
-        self.reduce_data()
         self.give_current_team_indexes()
+
+        self.reduce_data()
+
+        self.driver.quit()
+
 
     def give_current_team_indexes(self):
         for idx, player in enumerate(self.team_list):
             player['index'] = idx
 
+    def average_KPI(self):
+        KPI_list = []
+        for idx, player in enumerate(self.team_list):
+            KPI_list.append(player['KPI_n'])
+        return sum(KPI_list) / float(len(KPI_list))
+
     def reduce_data(self):
+
         for idx, player in enumerate(self.master_table):
             if player['ict_index_n'] == 0:
+                del self.master_table[idx]
+
+            if player['KPI_n'] < self.average_KPI():
                 del self.master_table[idx]
 
     def normalise_values(self):
@@ -48,10 +66,6 @@ class Analysis:
         for player in self.master_table:
             player[attribute + '_n'] = round((float(player[attribute]) - form_min_max['min']) / (form_min_max['max'] - form_min_max['min']), 2)
 
-
-    def calculate_form_per_price(self):
-        for player in self.master_table:
-            player['form_per_price'] = round(float(player['form']) / float(player['price']), 2)
 
     def get_player_position(self):
         for player in self.master_table:
@@ -75,11 +89,17 @@ class Analysis:
 
     def get_price_data(self):
         for p in self.master_table:
+            player_found = False
             for player in self.player_price_data:
                 if player[1] == p['web_name']:
                     p['price_change'] = player[14]
                     p['price'] = player[6]
+                    player_found = True
                     break
+            # if the player isn't found then give them terrible attributes so that they're not accidentally used
+            if not player_found:
+                p['price_change'] = -3
+                p['price'] = 20.0
 
     def get_stats_data(self):
         for p in self.master_table:
