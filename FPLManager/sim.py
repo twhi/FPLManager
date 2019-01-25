@@ -64,9 +64,6 @@ class Simulation:
         self.n_team_stats = None
 
 
-
-
-
     def wildcard_squad(self, max_iterations=100000, order_by="total_score", desired=[], num_teams=100):
         print('Starting a Wildcard Squad Generator simulation...')
         self.desired = desired
@@ -81,12 +78,17 @@ class Simulation:
 
         self.start_wildcard_simulation()
 
+        if len(self.team_list) > 0:
+            self.output_data2()
+        else:
+            print('\nNo team improvements found for given input paramters. Sorry m8.')
+
     def start_wildcard_simulation(self):
         self.team_list = []
         for i in range(self.max_iterations):
-            team = []
+            self.n_team = []
             for i in range(15):
-                team.append('')
+                self.n_team.append('')
 
             self._copy_variables_for_wildcard()
 
@@ -102,22 +104,36 @@ class Simulation:
                 if len(self.p_indicies[player_info['position']]) == 0:
                     del self.p_indicies[player_info['position']]
 
-                team[index_old] = player_in
+                self.n_team[index_old] = player_in
 
             # do random players
             for j in range(15 - len(self.desired)):
                 pos_idx = random.choice(list(self.p_indicies.keys()))  # choose a random position to replace
-                index_old = random.randrange(len(self.p_indicies[pos_idx]))  # choose a random player from that position
-                del self.p_indicies[pos_idx][index_old]  # remove the selected index from the list so it can't be selected again
+                idx = random.randrange(len(self.p_indicies[pos_idx]))  # choose a random player from that position
+                index_old = self.p_indicies[pos_idx][idx]
+                del self.p_indicies[pos_idx][idx]  # remove the selected index from the list so it can't be selected again
                 if len(self.p_indicies[pos_idx]) == 0:  # if the position index is empty then remove it to prevent it being randomly selected
                     del self.p_indicies[pos_idx]
 
                 index_new = random.randrange(len(self.p_list[pos_idx]))  # choose random player to replace
                 player_in = self.p_list[pos_idx][index_new]
                 del self.p_list[pos_idx][index_new]
-                team[index_old] = player_in
+                self.n_team[index_old] = player_in
 
                 # needs work, not quite working
+
+            self.n_team_stats = self.score_team(self.n_team)
+            self._bad_team_filter2()
+
+
+    def _bad_team_filter2(self):
+        # only keep simulated team if it outscores the previous team on total_score and KPI
+        if self.n_team_stats['total_cost'] <= self.total_balance:
+                self.team_list.append({
+                    'team': self.n_team,
+                    'stats': self.n_team_stats,
+                    'replacements': self.replacements
+                })
 
 
 
@@ -358,9 +374,41 @@ class Simulation:
                 'old team cost': self.current_team_stats['total_cost'],
             })
 
+    def _generate_output_data2(self):
+        # construct the output list of data
+        self.output = []
+        for team in self.team_list_sorted:
+            team_string = self._create_team_string(team)
+
+            # append team data to output variable
+            self.output.append({
+                'full team': team_string,
+                'new team form': team['stats']['sum_form_n'],
+                'new team ICT': team['stats']['sum_ict_index_n'],
+                'new team price change': team['stats']['sum_price_change_n'],
+                'new team 3 game difficulty': team['stats']['sum_3_game_difficulty_n'],
+                'new team score': team['stats']['total_score'],
+                'new team KPI': team['stats']['sum_KPI_n'],
+                'new team cost': team['stats']['total_cost'],
+                'old team form': self.current_team_stats['sum_form_n'],
+                'old team ICT': self.current_team_stats['sum_ict_index_n'],
+                'old team price change': self.current_team_stats['sum_price_change_n'],
+                'old team 3 game difficulty': self.current_team_stats['sum_3_game_difficulty_n'],
+                'old team KPI': self.current_team_stats['sum_KPI_n'],
+                'old team score': self.current_team_stats['total_score'],
+                'old team cost': self.current_team_stats['total_cost'],
+            })
+
     def output_data(self):
 
         self._order_list()
         self._trim_list()
         self._generate_output_data()
+        generate_csv(self.output)
+
+    def output_data2(self):
+
+        self._order_list()
+        self._trim_list()
+        self._generate_output_data2()
         generate_csv(self.output)
