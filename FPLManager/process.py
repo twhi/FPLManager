@@ -21,6 +21,8 @@ class ProcessData(FplData, PriceData):
         self.get_player_position()
         self.normalise_values()
 
+        self.score_player()
+
         self.team_list = self.get_team_list()
         self.give_current_team_indexes()
 
@@ -28,6 +30,10 @@ class ProcessData(FplData, PriceData):
 
         self.driver.quit()
 
+    def score_player(self):
+        for player in self.master_table:
+            player['score'] = round(player['form_n'] + player['price_change_n'] - player['3_game_difficulty_n'] + player['ict_index_n'], 2)
+            player['KPI_score'] = player['score'] + player['KPI_n']
 
     def give_current_team_indexes(self):
         for idx, player in enumerate(self.team_list):

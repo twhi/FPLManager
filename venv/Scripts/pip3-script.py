@@ -1,4 +1,4 @@
-#!C:\Users\whitehet.UKOUP\Documents\fpl_price_change_predictor\venv\Scripts\python.exe
+#!"C:\Users\tomw_\Documents\Python projects\FPLManager\venv\Scripts\python.exe"
 # EASY-INSTALL-ENTRY-SCRIPT: 'pip==10.0.1','console_scripts','pip3'
 __requires__ = 'pip==10.0.1'
 import re
