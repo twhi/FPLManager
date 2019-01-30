@@ -232,6 +232,7 @@ class Simulation:
         sum_ict_index_n = sum_value(t, 'ict_index_n')
         sum_KPI_n = sum_value(t, 'KPI_n')
         total_score = round(sum_form_n + sum_price_change_n - sum_3_game_difficulty_n + sum_ict_index_n, 2)
+        sum_KPI_score = sum_value(t, 'KPI_score')
         total_cost = sum_value(t, 'price')
         return {
             'sum_form_n': sum_form_n,
@@ -239,6 +240,7 @@ class Simulation:
             'sum_3_game_difficulty_n': sum_3_game_difficulty_n,
             'sum_ict_index_n': sum_ict_index_n,
             'sum_KPI_n': sum_KPI_n,
+            'sum_KPI_score': sum_KPI_score,
             'total_cost': total_cost,
             'total_score': total_score
         }
@@ -310,13 +312,12 @@ class Simulation:
     def _bad_team_filter(self):
         # only keep simulated team if it outscores the previous team on total_score and KPI
         if self.n_team_stats['total_cost'] <= self.total_balance:
-            if self.n_team_stats['sum_KPI_n'] > self.current_team_stats['sum_KPI_n']:
-                if self.n_team_stats['total_score'] > self.current_team_stats['total_score']:
-                    self.team_list.append({
-                        'team': self.n_team,
-                        'stats': self.n_team_stats,
-                        'replacements': self.replacements
-                    })
+            if self.n_team_stats['sum_KPI_score'] > self.current_team_stats['sum_KPI_score']:
+                self.team_list.append({
+                    'team': self.n_team,
+                    'stats': self.n_team_stats,
+                    'replacements': self.replacements
+                })
 
 
     def _order_list(self):

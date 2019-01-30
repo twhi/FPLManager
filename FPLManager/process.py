@@ -33,6 +33,8 @@ class ProcessData(FplData, PriceData):
     def score_player(self):
         for player in self.master_table:
             player['score'] = round(player['form_n'] + player['price_change_n'] - player['3_game_difficulty_n'] + player['ict_index_n'], 2)
+            if player['score'] < 0:
+                player['score'] = 0
             player['KPI_score'] = player['score'] + player['KPI_n']
 
     def give_current_team_indexes(self):
