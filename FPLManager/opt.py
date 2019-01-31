@@ -33,13 +33,16 @@ df_list = create_position_list('D')
 md_list = create_position_list('M')
 fw_list = create_position_list('F')
 
+# parameter to maximise
+opt_param = 'KPI'
+
 # construct lists
 players = []
 kpi = []
 price = []
 for player in master_table:
     players.append(str(player['web_name']))
-    kpi.append(round(float(player['price_change']), 2))
+    kpi.append(round(float(player[opt_param]), 2))
     price.append(float(player['price']))
 
 maximum_price = account_data['bank'] + account_data['total_balance']
@@ -58,7 +61,7 @@ x = LpVariable.matrix("x", list(P), 0, 1, LpInteger)
 prob += sum(kpi[p] * x[p] for p in P)
 
 # Constraint definition
-prob += sum(price[p] * x[p] for p in P) <= (maximum_price + 100)  # total cost
+prob += sum(price[p] * x[p] for p in P) <= maximum_price  # total cost
 prob += sum(gk_list[p] * x[p] for p in P) == 2  # number of goalies allowed
 prob += sum(df_list[p] * x[p] for p in P) == 5  # number of defenders allowed
 prob += sum(md_list[p] * x[p] for p in P) == 5  # number of midfielders allowed
@@ -75,7 +78,7 @@ total_kpi = 0
 for player in portfolio:
     player_data = lookup_player_by_web_name(player)
     total_price += float(player_data['price'])
-    total_kpi += float(player_data['KPI'])
+    total_kpi += float(player_data[opt_param])
     print(player_data['web_name'], player_data['position'])
 print('\n')
 print('Total price - £' + str(total_price))

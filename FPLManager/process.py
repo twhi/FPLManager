@@ -41,19 +41,24 @@ class ProcessData(FplData, PriceData):
         for idx, player in enumerate(self.team_list):
             player['index'] = idx
 
-    def average_KPI(self):
+    def get_average_KPI(self):
         KPI_list = []
-        for idx, player in enumerate(self.team_list):
+        for idx, player in enumerate(self.master_table):
             KPI_list.append(player['KPI_n'])
         return sum(KPI_list) / float(len(KPI_list))
 
     def reduce_data(self):
+        self.average_KPI = self.get_average_KPI()
 
         for idx, player in enumerate(self.master_table):
+
+            if player['web_name'] == 'Son':
+                teer = True
+
             if player['ict_index_n'] == 0:
                 del self.master_table[idx]
 
-            if player['KPI_n'] < self.average_KPI():
+            if player['KPI_n'] < self.average_KPI:
                 del self.master_table[idx]
 
     def normalise_values(self):
