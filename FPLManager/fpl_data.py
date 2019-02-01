@@ -7,7 +7,7 @@ class FplData:
         print('Getting FPL data...')
         self.session = session
         self.account_data = self.get_unique_account_data()
-        self.team_info = self.get_team_data()
+        self.team_info = self.get_team_list_data()
         self.master_table = self.get_master_table()
 
     def get_unique_account_data(self):
@@ -19,7 +19,7 @@ class FplData:
         }
         return account_data
 
-    def get_team_data(self):
+    def get_team_list_data(self):
         team_data_url_template = 'https://fantasy.premierleague.com/drf/my-team/[account_id]/'
         team_data_url = team_data_url_template.replace('[account_id]', str(self.account_data['unique_id']))
         team_data_s = self.session.get(team_data_url).text

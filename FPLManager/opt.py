@@ -1,88 +1,101 @@
-import pickle
-from pulp import *
+from pulp import LpMinimize, LpMaximize, LpProblem, LpVariable, LpInteger
 
 
-def open_pickle(path_to_file):
-    with open(path_to_file, 'rb') as handle:
-        f = pickle.load(handle)
-    return f
+class Optimise:
+    def __init__(self, opt_parameter, data, optimal_team=False):
+        self.prob = None
+        self.decision = None
 
+        self.opt_parameter = opt_parameter
 
-def lookup_player_by_web_name(web_name):
-    for p in master_table:
-        if p['web_name'] == web_name:
-            return p
+        params_to_min = ['3_game_difficulty', '3_game_difficulty_n', 'price']
 
-
-def create_position_list(position):
-    list_result = []
-    for p in master_table:
-        if p['position'] == position:
-            list_result.append(1)
+        if opt_parameter in params_to_min:
+            self.opt_max_min = LpMinimize
         else:
-            list_result.append(0)
-    return list_result
+            self.opt_max_min = LpMaximize
 
+        if optimal_team:
+            self.max_price = 999
+        else:
+            self.max_price = data.account_data['bank'] + data.account_data['total_balance']
 
-account_data = open_pickle('./opt/account_data.pickle')
-master_table = open_pickle('./opt/master_table.pickle')
-team_list = open_pickle('./opt/team_list.pickle')
+        self.master_table = data.master_table
+        self.account_data = data.account_data
+        self.team_list = data.team_list
 
-gk_list = create_position_list('G')
-df_list = create_position_list('D')
-md_list = create_position_list('M')
-fw_list = create_position_list('F')
+        self.gk_list = self.create_position_list('G')
+        self.df_list = self.create_position_list('D')
+        self.md_list = self.create_position_list('M')
+        self.fw_list = self.create_position_list('F')
 
-# parameter to maximise
-opt_param = 'KPI'
+        self.player_list = self.construct_list('web_name')
+        self.price_list = self.convert_str_list_to_float(self.construct_list('price'))
+        self.team_list = self.construct_list('team')
+        self.opt_list = self.convert_str_list_to_float(self.construct_list(self.opt_parameter))
+        self.data_length = range(len(self.player_list))
 
-# construct lists
-players = []
-kpi = []
-price = []
-for player in master_table:
-    players.append(str(player['web_name']))
-    kpi.append(round(float(player[opt_param]), 2))
-    price.append(float(player['price']))
+        self.squad = self.run_optimisation()
+        # self.get_full_squad_data()
 
-maximum_price = account_data['bank'] + account_data['total_balance']
-number_changes = 15
+    def create_position_list(self, position):
+        list_result = []
+        for p in self.master_table:
+            if p['position'] == position:
+                list_result.append(1)
+            else:
+                list_result.append(0)
+        return list_result
 
-P = range(len(players))
+    def construct_list(self, attribute):
+        l = []
+        for player in self.master_table:
+            l.append(player[attribute])
+        return l
 
-# Declare problem instance, maximization problem
-prob = LpProblem("Portfolio", LpMaximize)
+    @staticmethod
+    def convert_str_list_to_float(lst):
+        return [float(i) for i in lst]
 
-# Declare decision variable x, which is 1 if a
-# player is part of the squad and 0 else
-x = LpVariable.matrix("x", list(P), 0, 1, LpInteger)
+    def get_full_squad_data(self):
+        for player in self.squad:
+            player_data = self.lookup_player_by_web_name(player)
+            print(player_data['web_name'], player_data['team'])
 
-# Objective function -> Maximize votes
-prob += sum(kpi[p] * x[p] for p in P)
+    def lookup_player_by_web_name(self, web_name):
+        for p in self.master_table:
+            if p['web_name'] == web_name:
+                return p
 
-# Constraint definition
-prob += sum(price[p] * x[p] for p in P) <= maximum_price  # total cost
-prob += sum(gk_list[p] * x[p] for p in P) == 2  # number of goalies allowed
-prob += sum(df_list[p] * x[p] for p in P) == 5  # number of defenders allowed
-prob += sum(md_list[p] * x[p] for p in P) == 5  # number of midfielders allowed
-prob += sum(fw_list[p] * x[p] for p in P) == 3  # number of forwards allowed
+    def run_optimisation(self):
 
-# Start solving the problem instance
-prob.solve()
+        # Declare problem instance, maximization problem
+        self.prob = LpProblem("Squad", self.opt_max_min)
 
-# Extract solution
-portfolio = [players[p] for p in P if x[p].varValue]
+        # Declare decision variable x, which is 1 if a player is part of the squad and 0 else
+        self.decision = LpVariable.matrix("decision", list(self.data_length), 0, 1, LpInteger)
 
-total_price = 0
-total_kpi = 0
-for player in portfolio:
-    player_data = lookup_player_by_web_name(player)
-    total_price += float(player_data['price'])
-    total_kpi += float(player_data[opt_param])
-    print(player_data['web_name'], player_data['position'])
-print('\n')
-print('Total price - £' + str(total_price))
-print('Total KPI - ' + str(total_kpi))
+        # Objective function -> Maximize specified optimisation parameter
+        self.prob += sum(self.opt_list[i] * self.decision[i] for i in self.data_length)
 
-# TODO: rename the variables to something more appropriate so it makes sense when i revisit
-# make this into a reusable class, so this can be called dynamically
+        # Constraint definition
+        self.add_wildcard_constraints()
+
+        # solve problem
+        self.prob.solve()
+
+        # extract selected players and return
+        return [self.player_list[i] for i in self.data_length if self.decision[i].varValue]
+
+    def add_wildcard_constraints(self):
+        # Constraint definition
+        number_of_teams = 20
+
+        self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= self.max_price  # cost
+        self.prob += sum(self.gk_list[i] * self.decision[i] for i in self.data_length) == 2  # number of goalies
+        self.prob += sum(self.df_list[i] * self.decision[i] for i in self.data_length) == 5  # number of defenders
+        self.prob += sum(self.md_list[i] * self.decision[i] for i in self.data_length) == 5  # number of midfielders
+        self.prob += sum(self.fw_list[i] * self.decision[i] for i in self.data_length) == 3  # number of forwards
+
+        # TODO: need to contrain the number of players from each team to 3, will need to do something similar to the positions
+        # but in a for loop cos i aint gonna write out 20 lines

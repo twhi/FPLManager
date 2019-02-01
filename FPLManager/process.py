@@ -1,38 +1,62 @@
 import json
+import requests
 from FPLManager.fpl_data import FplData
 from FPLManager.price_data import PriceData
+import pickle
+
+
+def save_to_pickle(variable, filename):
+    with open(filename, 'wb') as handle:
+        pickle.dump(variable, handle)
+
 
 class ProcessData(FplData, PriceData):
 
-    def __init__(self, web):
-        # initlialise web stuff
-        self.session = web.session
-        self.driver = web.driver
+    def __init__(self, **kwargs):
 
-        # initialise inherited classes, these grab data from the web
-        FplData.__init__(self, self.session)
-        PriceData.__init__(self, web)
+        if len(kwargs) == 1:
+            web = kwargs.get('web_session')
+            self.session = web.session
+            self.driver = web.driver
+            FplData.__init__(self, self.session)
+            PriceData.__init__(self, web)
+            self.process_data()
+            self.cache_data()
+        else:
+            self.session = requests.Session()
+            for (k, v) in kwargs.items():
+                setattr(self, k, v)
+            self.process_data()
 
+        self.reduce_data()
+
+        if hasattr(self, 'driver'):
+            self.driver.quit()
+
+    def process_data(self):
         self.total_balance = round(self.account_data['bank'] + self.account_data['total_balance'], 1)
-
         self.get_game_difficulties()
         self.get_price_data()
         self.get_stats_data()
         self.get_player_position()
         self.normalise_values()
-
         self.score_player()
-
         self.team_list = self.get_team_list()
         self.give_current_team_indexes()
 
-        self.reduce_data()
-
-        self.driver.quit()
+    def cache_data(self):
+        # could probably be refactored
+        save_to_pickle(self.account_data, './data/account_data.pickle')
+        save_to_pickle(self.master_table, './data/master_table.pickle')
+        save_to_pickle(self.player_price_data, './data/player_price_data.pickle')
+        save_to_pickle(self.player_stats_data, './data/player_stats_data.pickle')
+        save_to_pickle(self.team_list, './data/team_list.pickle')
+        save_to_pickle(self.team_info, './data/team_info.pickle')
 
     def score_player(self):
         for player in self.master_table:
-            player['score'] = round(player['form_n'] + player['price_change_n'] - player['3_game_difficulty_n'] + player['ict_index_n'], 2)
+            player['score'] = round(
+                player['form_n'] + player['price_change_n'] - player['3_game_difficulty_n'] + player['ict_index_n'], 2)
             if player['score'] < 0:
                 player['score'] = 0
             player['KPI_score'] = player['score'] + player['KPI_n']
@@ -52,9 +76,6 @@ class ProcessData(FplData, PriceData):
 
         for idx, player in enumerate(self.master_table):
 
-            if player['web_name'] == 'Son':
-                teer = True
-
             if player['ict_index_n'] == 0:
                 del self.master_table[idx]
 
@@ -69,7 +90,12 @@ class ProcessData(FplData, PriceData):
     def min_max_values(self, attribute):
         val_list = []
         for item in self.master_table:
-            val_list.append(item[attribute])
+            try:
+                val_list.append(item[attribute])
+            except:
+                print('Attribute ' + attribute + ' not found for player ' + item['web_name'])
+                val_list.append(0)
+                item[attribute] = 0
         val_list_float = [float(i) for i in val_list]
         mm = {'min': float(min(val_list_float)), 'max': float(max(val_list_float))}
         return mm
@@ -77,8 +103,8 @@ class ProcessData(FplData, PriceData):
     def calculate_normalised_attribute(self, attribute):
         form_min_max = self.min_max_values(attribute)
         for player in self.master_table:
-            player[attribute + '_n'] = round((float(player[attribute]) - form_min_max['min']) / (form_min_max['max'] - form_min_max['min']), 2)
-
+            player[attribute + '_n'] = round(
+                (float(player[attribute]) - form_min_max['min']) / (form_min_max['max'] - form_min_max['min']), 2)
 
     def get_player_position(self):
         for player in self.master_table:
