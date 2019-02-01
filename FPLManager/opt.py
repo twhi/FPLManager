@@ -60,7 +60,7 @@ class Optimise:
     def get_full_squad_data(self):
         for player in self.squad:
             player_data = self.lookup_player_by_web_name(player)
-            print(player_data['web_name'], player_data['team'])
+            print(player_data['web_name'], player_data['team'], player_data[self.opt_parameter], sep=";")
 
     def lookup_player_by_web_name(self, web_name):
         for p in self.master_table:
@@ -97,5 +97,9 @@ class Optimise:
         self.prob += sum(self.md_list[i] * self.decision[i] for i in self.data_length) == 5  # number of midfielders
         self.prob += sum(self.fw_list[i] * self.decision[i] for i in self.data_length) == 3  # number of forwards
 
+        for i in range(1,20):
+            self.prob += sum([1 * self.decision[j] for j in self.data_length if self.team_list[j] == i]) <= 3
+
+        ender=True
         # TODO: need to contrain the number of players from each team to 3, will need to do something similar to the positions
         # but in a for loop cos i aint gonna write out 20 lines
