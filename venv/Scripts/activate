@@ -37,7 +37,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="C:\Users\whitehet.UKOUP\Documents\FPLManager\venv"
+VIRTUAL_ENV="C:\Users\tomw_\Documents\Python projects\FPLManager\venv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"
