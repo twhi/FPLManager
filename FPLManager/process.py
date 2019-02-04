@@ -78,8 +78,7 @@ class ProcessData(FplData, PriceData):
 
             if player['ict_index_n'] == 0:
                 del self.master_table[idx]
-
-            if player['KPI_n'] < self.average_KPI:
+            elif player['KPI_n'] < self.average_KPI:
                 del self.master_table[idx]
 
     def normalise_values(self):

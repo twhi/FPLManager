@@ -29,7 +29,6 @@ class Optimise:
         self.md_list = self.create_position_list('M')
         self.fw_list = self.create_position_list('F')
 
-        self.position_list = self.construct_list('position')
         self.player_list = self.construct_list('web_name')
         self.price_list = self.convert_str_list_to_float(self.construct_list('price'))
         self.team_list = self.construct_list('team')
@@ -37,7 +36,7 @@ class Optimise:
         self.data_length = range(len(self.player_list))
 
         self.squad = self.run_optimisation()
-        self.get_full_squad_data()
+        # self.get_full_squad_data()
 
     def create_position_list(self, position):
         list_result = []
@@ -91,16 +90,30 @@ class Optimise:
     def add_wildcard_constraints(self):
         # Constraint definition
         number_of_teams = 20
-        positions = ['G', 'D', 'M', 'F']
-        allowed_p = [2, 5, 5, 3]
 
-        # constrain max price
         self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= self.max_price  # cost
+        self.prob += sum(self.gk_list[i] * self.decision[i] for i in self.data_length) == 2  # number of goalies
+        self.prob += sum(self.df_list[i] * self.decision[i] for i in self.data_length) == 5  # number of defenders
+        self.prob += sum(self.md_list[i] * self.decision[i] for i in self.data_length) == 5  # number of midfielders
+        self.prob += sum(self.fw_list[i] * self.decision[i] for i in self.data_length) == 3  # number of forwards
 
-        # constrain number of players in each position
-        for idx, i in enumerate(positions):
-            self.prob += sum([1 * self.decision[j] for j in self.data_length if self.position_list[j] == i]) <= allowed_p[idx]
-
-        # constrain max 3 players per team
-        for i in range(1, number_of_teams):
+        for i in range(1,20):
             self.prob += sum([1 * self.decision[j] for j in self.data_length if self.team_list[j] == i]) <= 3
+
+
+        ###################################
+        # ALTERNATE METHOD (I THINK THIS WENT WRONG SOMEHOW)
+        # Constraint definition
+        # number_of_teams = 20
+        # positions = ['G', 'D', 'M', 'F']
+        # allowed_p = [2, 5, 5, 3]
+        #
+        # # constrain max price
+        # self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= self.max_price  # cost
+        #
+        # # constrain number of players in each position
+        # for idx, i in enumerate(positions):
+        #     self.prob += sum([1 * self.decision[j] for j in self.data_length if self.position_list[j] == i]) <= \
+        #                  allowed_p[idx]
+
+        ender=True

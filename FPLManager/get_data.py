@@ -60,9 +60,7 @@ class GetData:
 
 
     def get_data(self):
-        return self.get_data_from_web()
-
-        # if self.older_than_one_hour('./data/account_data.pickle'):
-        #     return self.get_data_from_web()
-        # else:
-        #     return self.use_cached_data()
+        if self.older_than_one_hour('./data/account_data.pickle'):
+            return self.get_data_from_web()
+        else:
+            return self.use_cached_data()
