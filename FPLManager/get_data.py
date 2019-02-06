@@ -7,9 +7,10 @@ from FPLManager.web_stuff import WebStuff
 
 
 class GetData:
-    def __init__(self, u, p):
+    def __init__(self, u, p, reduce):
         self.username = u
         self.password = p
+        self.reduce = reduce
         self.data = self.get_data()
 
     @staticmethod
@@ -43,7 +44,7 @@ class GetData:
             'player_stats_data': self.open_pickle('./data/player_stats_data.pickle')
         }
 
-        return ProcessData(**data)
+        return ProcessData(self.reduce, **data)
 
 
     def get_data_from_web(self):
@@ -56,7 +57,7 @@ class GetData:
         web.log_into_fpl()
         if web.login_status.status_code == 200:
             print('    Logged in successfully!')
-            return ProcessData(web_session=web)
+            return ProcessData(self.reduce, web_session=web)
 
 
     def get_data(self):

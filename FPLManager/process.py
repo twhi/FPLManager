@@ -12,7 +12,7 @@ def save_to_pickle(variable, filename):
 
 class ProcessData(FplData, PriceData):
 
-    def __init__(self, **kwargs):
+    def __init__(self, reduce_data, **kwargs):
 
         if len(kwargs) == 1:
             web = kwargs.get('web_session')
@@ -28,7 +28,8 @@ class ProcessData(FplData, PriceData):
                 setattr(self, k, v)
             self.process_data()
 
-        self.reduce_data()
+        if reduce_data:
+            self.reduce_data()
 
         if hasattr(self, 'driver'):
             self.driver.quit()

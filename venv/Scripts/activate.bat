@@ -1,5 +1,5 @@
 @echo off
-set "VIRTUAL_ENV=C:\Users\whitehet.UKOUP\Documents\FPLManager\venv"
+set "VIRTUAL_ENV=C:\Users\tomw_\DOCUME~1\PYTHON~1\FPLMAN~1\venv"
 
 if defined _OLD_VIRTUAL_PROMPT (
     set "PROMPT=%_OLD_VIRTUAL_PROMPT%"
