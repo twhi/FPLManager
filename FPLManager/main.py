@@ -4,6 +4,7 @@ from FPLManager.opt import Substitution
 from FPLManager.sim import Simulation
 import pickle
 import csv
+import time
 
 def save_to_pickle(variable, filename):
     with open(filename, 'wb') as handle:
@@ -12,18 +13,20 @@ def save_to_pickle(variable, filename):
 username = ''
 password = ''
 
-player_attributes = ['value_form', 'value_season', 'selected_by_percent', 'form', 'points_per_game', 'ep_this',
-                     'ep_next', 'influence', 'creativity', 'threat', 'ict_index', 'price_change', 'price', 'KPI',
-                     'now_cost', 'dreamteam_count', 'transfers_out', 'transfers_in', 'transfers_out_event',
-                     'transfers_in_event', 'loans_in', 'loans_out', 'loaned_in', 'loaned_out', 'total_points',
-                     'event_points', 'minutes', 'goals_scored', 'assists', 'clean_sheets', 'goals_conceded',
-                     'own_goals', 'penalties_saved', 'penalties_missed', 'yellow_cards', 'red_cards', 'saves',
-                     'bonus', 'bps', 'ea_index', '3_game_difficulty', 'form_n', 'price_change_n',
-                     '3_game_difficulty_n', 'ict_index_n', 'KPI_n', 'score', 'KPI_score']
-
+# 'sum_form_n': sum_form_n,
+# 'sum_price_change_n': sum_price_change_n,
+# 'sum_3_game_difficulty_n': sum_3_game_difficulty_n,
+# 'sum_ict_index_n': sum_ict_index_n,
+# 'sum_KPI_n': sum_KPI_n,
+# 'sum_KPI_score': sum_KPI_score,
+# 'total_cost': total_cost,
+# 'total_score': total_score
 
 processed_data = GetData(username, password, reduce=True).data
+# sim = Simulation(processed_data)
+# squad = sim.find_n_replacements(num_replacements=3, max_iterations=5000000, order_by="total_score", num_teams=100, desired=[], outfield_only=False)
 
-
-# opt_squad = Optimise('form', processed_data).squad
-sub = Substitution('form', processed_data, n_subs=2)
+t0 = time.time()
+sub = Substitution('KPI', processed_data, n_subs=1)
+t1 = time.time()
+print(t1-t0)

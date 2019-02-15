@@ -1,3 +1,4 @@
+*.mps
 *.csv
 .idea/
 __pycache__/

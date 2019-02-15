@@ -1,6 +1,38 @@
 from pulp import LpMinimize, LpMaximize, LpProblem, LpVariable, LpInteger
+import itertools
+import csv
 
 
+def score_team(t):
+    sum_form_n = sum_value(t, 'form_n')
+    sum_price_change_n = sum_value(t, 'price_change_n')
+    sum_3_game_difficulty_n = sum_value(t, '3_game_difficulty_n')
+    sum_ict_index_n = sum_value(t, 'ict_index_n')
+    sum_KPI_n = sum_value(t, 'KPI_n')
+    total_score = round(sum_form_n + sum_price_change_n - sum_3_game_difficulty_n + sum_ict_index_n, 2)
+    sum_KPI_score = sum_value(t, 'KPI_score')
+    total_cost = sum_value(t, 'price')
+    return {
+        'sum_form_n': sum_form_n,
+        'sum_price_change_n': sum_price_change_n,
+        'sum_3_game_difficulty_n': sum_3_game_difficulty_n,
+        'sum_ict_index_n': sum_ict_index_n,
+        'sum_KPI_n': sum_KPI_n,
+        'sum_KPI_score': sum_KPI_score,
+        'total_cost': total_cost,
+        'total_score': total_score
+    }
+
+def sum_value(t, attribute):
+    """
+    :param t: A list of player dictionaries
+    :param attribute: The attribute that you want to sum
+    :return: The sum of the specified attribute, rounded to 2 d.p
+    """
+    s = 0
+    for player in t:
+        s += float(player[attribute])
+    return round(s, 2)
 
 class Substitution:
     def __init__(self, opt_parameter, data, optimal_team=False, n_subs=2):
@@ -12,6 +44,7 @@ class Substitution:
         self.opt_parameter = opt_parameter
         self.optimal_team = optimal_team
         self.max_price = 999
+        self.output = []
 
         # split data parameters into data type
         self.master_table = data.master_table
@@ -37,43 +70,87 @@ class Substitution:
         self.define_opt_type()
         self.define_budget()
 
+        # score current or 'old' team
+        self.ots = score_team(self.team_data)
+        self.old_team_score = {}
+        for key in self.ots:
+            self.old_team_score['old_' + key] = self.ots[key]
+
         self.gk_list = self.create_position_list('G')
         self.df_list = self.create_position_list('D')
         self.md_list = self.create_position_list('M')
         self.fw_list = self.create_position_list('F')
 
+        # sub combinations
+        self.subs_to_make = self.get_subs()
+
+        # get length of data
         self.data_length = range(len(self.player_list))
-        self.subs = self.run_optimisation()
 
-        prev_team_opt_val = 0
-        for p in self.team_data:
-            prev_team_opt_val += float(p[self.opt_parameter])
+        # run some subs
+        self.run_substitution_simulation()
+
+        # output data
+        keys = self.output[0].keys()
+        with open('tester.csv', 'w', newline='') as output_file:
+            dict_writer = csv.DictWriter(output_file, keys)
+            dict_writer.writeheader()
+            dict_writer.writerows(self.output)
 
 
-        # grab data for sub'd players
-        sub_data = []
-        for sub in self.subs:
-            sub_data.append(self.lookup_player_by_web_name(sub))
+    def run_substitution_simulation(self):
+        idx = 0
+        for subs in self.subs_to_make:
+            idx += 1
+            print(idx, 'out of', self.total_iterations, 'simulations complete', round(100*idx/self.total_iterations,2),'%')
 
-        print('################')
-        print('Substitutions made\n')
-        old_opt_value = 0
-        new_opt_value = 0
-        for idx, removed in enumerate(self.players_to_remove):
-            old_opt_value += float(removed[self.opt_parameter])
-            new_opt_value += float(sub_data[idx][self.opt_parameter])
-            print(removed['web_name'], '>', sub_data[idx]['web_name'])
+            # create copy of current team
+            self.current_team = self.team_data.copy()
 
-        delta = round(new_opt_value - old_opt_value, 2)
+            # remove selected players
+            self.players_to_remove = []
+            for sub in reversed(subs):
+                self.players_to_remove.append(self.current_team[sub])
+                self.current_team.pop(sub)
 
-        # post processing
-        final_squad = self.team_name_list + self.subs
+            # run optimiser
+            self.subs = self.run_optimisation()
 
-        print('\n################')
-        print('Final squad\n')
-        self.print_opt_squad_data(final_squad)
-        print('This substitution increased', self.opt_parameter, 'by ', delta)
-        print('(Old team', self.opt_parameter, 'was', round(prev_team_opt_val, 2), ')')
+            #
+            self.add_players_to_current_team()
+            self.prepare_output()
+
+    def get_player_data_by_webname(self, n):
+        # should pre allocate this for speed
+        for player in self.master_table:
+            if player['web_name'] == n:
+                return player
+
+    def add_players_to_current_team(self):
+        for player in self.subs:
+            player_data = self.get_player_data_by_webname(player)
+            self.current_team.append(player_data)
+
+    def prepare_output(self):
+        # get substitutions
+        players_out = [p['web_name'] for p in self.players_to_remove]
+        subs = [i + " > " + j for i, j in zip(players_out, self.subs)]
+        new_team_score = score_team(self.current_team)
+        optimisation_data = {
+            'subs': subs
+        }
+        optimisation_data.update(new_team_score)
+        optimisation_data.update(self.old_team_score)
+
+        self.output.append(optimisation_data)
+
+        tester = True
+
+    def get_subs(self):
+        team_list = list(range(0,15))
+        self.total_iterations = len(list(itertools.combinations(team_list, self.n_subs)))
+        return itertools.combinations(team_list, self.n_subs)
+
 
     def define_budget(self):
         if not self.optimal_team:
@@ -144,14 +221,6 @@ class Substitution:
 
     def add_sub_constraints(self):
 
-        # find number of players that minimise the opt param
-        team_opt_list = sorted(self.team_data, key=lambda k: float(k[self.opt_parameter]))
-        self.players_to_remove = []
-        for idx, i in enumerate(range(self.n_subs)):
-            self.players_to_remove.append(team_opt_list[i]) # index out of range error
-            team_opt_list.pop(idx)
-
-
         # calculate these players attributes
         remove_positions = []
         player_out_cost = 0
@@ -160,65 +229,19 @@ class Substitution:
             player_out_cost += float(player['price'])
         new_budget = self.account_data['bank'] + player_out_cost
 
-        # get current team ID list
-        team_id_list = [p['team'] for p in team_opt_list]
-
-        # get current team name list
-        self.team_name_list = [p['web_name'] for p in team_opt_list]
-
-
-        if remove_positions.count('G'):
-            self.prob += sum(self.gk_list[i] * self.decision[i] for i in self.data_length) == remove_positions.count('G')
-
-        if remove_positions.count('D'):
-            self.prob += sum(self.df_list[i] * self.decision[i] for i in self.data_length) == remove_positions.count('D')
-
-        if remove_positions.count('M'):
-            self.prob += sum(self.md_list[i] * self.decision[i] for i in self.data_length) == remove_positions.count('M')
-
-        if remove_positions.count('F'):
-            self.prob += sum(self.fw_list[i] * self.decision[i] for i in self.data_length) == remove_positions.count('F')
+        # constrain the positions
+        self.prob += sum(self.gk_list[i] * self.decision[i] for i in self.data_length) == remove_positions.count('G')
+        self.prob += sum(self.df_list[i] * self.decision[i] for i in self.data_length) == remove_positions.count('D')
+        self.prob += sum(self.md_list[i] * self.decision[i] for i in self.data_length) == remove_positions.count('M')
+        self.prob += sum(self.fw_list[i] * self.decision[i] for i in self.data_length) == remove_positions.count('F')
 
         # total cost constraint
         self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= new_budget  # cost
 
         # num of players in team constraint
-        # for i in range(1,20):
-        #     self.prob += sum([1 * self.decision[j] for j in range(len(team_id_list)) if team_id_list[j] == i]) + team_id_list.count(i) <= 3
-
-        for i in range(1,20):
-            self.prob += sum([1 * self.decision[j] for j in self.data_length if self.team_list[j] == i]) <= 3
-
-
-
-    def add_wildcard_constraints(self):
-
-        self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= self.max_price  # cost
-        self.prob += sum(self.gk_list[i] * self.decision[i] for i in self.data_length) == 2  # number of goalies
-        self.prob += sum(self.df_list[i] * self.decision[i] for i in self.data_length) == 5  # number of defenders
-        self.prob += sum(self.md_list[i] * self.decision[i] for i in self.data_length) == 5  # number of midfielders
-        self.prob += sum(self.fw_list[i] * self.decision[i] for i in self.data_length) == 3  # number of forwards
-
-        for i in range(1,20):
-            self.prob += sum([1 * self.decision[j] for j in self.data_length if self.team_list[j] == i]) <= 3
-
-
-        ###################################
-        # ALTERNATE METHOD (I THINK THIS WENT WRONG SOMEHOW)
-        # Constraint definition
-        # number_of_teams = 20
-        # positions = ['G', 'D', 'M', 'F']
-        # allowed_p = [2, 5, 5, 3]
-        #
-        # # constrain max price
-        # self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= self.max_price  # cost
-        #
-        # # constrain number of players in each position
-        # for idx, i in enumerate(positions):
-        #     self.prob += sum([1 * self.decision[j] for j in self.data_length if self.position_list[j] == i]) <= \
-        #                  allowed_p[idx]
-
-        ender=True
+        team_id_list = [p['team'] for p in self.current_team]
+        for i in range(1, 20):
+            self.prob += sum([1 * self.decision[j] for j in range(len(team_id_list)) if team_id_list[j] == i]) + team_id_list.count(i) <= 3
 
 
 
@@ -331,45 +354,6 @@ class Optimise:
 
         # extract selected players and return
         return [self.player_list[i] for i in self.data_length if self.decision[i].varValue]
-
-    def add_sub_constraints(self):
-
-        # find number of players that minimise the opt param
-        team_opt_list = sorted(self.team_data, key=lambda k: float(k[self.opt_parameter]))
-        players_to_remove = []
-        for i in range(self.n_subs):
-            players_to_remove.append(team_opt_list[i])
-
-        # find these players
-        remove_positions = []
-        player_out_cost = 0
-        for player in players_to_remove:
-            remove_positions.append(player['position'])
-            player_out_cost += float(player['price'])
-        new_budget = self.account_data['bank'] + player_out_cost
-
-        # get current team ID list
-        team_id_list = [p['id'] for p in self.team_data]
-
-
-        if remove_positions.count('G'):
-            self.prob += sum(self.gk_list[i] * self.decision[i] for i in self.data_length) == remove_positions.count('G')
-
-        if remove_positions.count('D'):
-            self.prob += sum(self.df_list[i] * self.decision[i] for i in self.data_length) == remove_positions.count('D')
-
-        if remove_positions.count('M'):
-            self.prob += sum(self.md_list[i] * self.decision[i] for i in self.data_length) == remove_positions.count('M')
-
-        if remove_positions.count('F'):
-            self.prob += sum(self.fw_list[i] * self.decision[i] for i in self.data_length) == remove_positions.count('F')
-
-        # total cost constraint
-        self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= new_budget  # cost
-
-        # num of players from a team constraint
-        for i in range(1,20):
-            self.prob += sum([1 * self.decision[j] for j in self.data_length if self.team_list[j] == i]) <= 3
 
 
 
