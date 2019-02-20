@@ -3,7 +3,7 @@ import itertools
 import csv
 
 
-def score_team(t):
+def score_team(t, opt):
     sum_form_n = sum_value(t, 'form_n')
     sum_price_change_n = sum_value(t, 'price_change_n')
     sum_3_game_difficulty_n = sum_value(t, '3_game_difficulty_n')
@@ -11,6 +11,7 @@ def score_team(t):
     sum_KPI_n = sum_value(t, 'KPI_n')
     total_score = round(sum_form_n + sum_price_change_n - sum_3_game_difficulty_n + sum_ict_index_n, 2)
     sum_KPI_score = sum_value(t, 'KPI_score')
+    total_opt_param = sum_value(t, opt)
     total_cost = sum_value(t, 'price')
     return {
         'sum_form_n': sum_form_n,
@@ -18,9 +19,10 @@ def score_team(t):
         'sum_3_game_difficulty_n': sum_3_game_difficulty_n,
         'sum_ict_index_n': sum_ict_index_n,
         'sum_KPI_n': sum_KPI_n,
+        'total_score': total_score,
+        'sum_'+opt: total_opt_param,
         'sum_KPI_score': sum_KPI_score,
-        'total_cost': total_cost,
-        'total_score': total_score
+        'total_cost': total_cost
     }
 
 def sum_value(t, attribute):
@@ -71,7 +73,7 @@ class Substitution:
         self.define_budget()
 
         # score current or 'old' team
-        self.ots = score_team(self.team_data)
+        self.ots = score_team(self.team_data, self.opt_parameter)
         self.old_team_score = {}
         for key in self.ots:
             self.old_team_score['old_' + key] = self.ots[key]
@@ -92,7 +94,7 @@ class Substitution:
 
         # output data
         keys = self.output[0].keys()
-        with open('tester.csv', 'w', newline='') as output_file:
+        with open('./output_data/substitution_sim.csv', 'w', newline='') as output_file:
             dict_writer = csv.DictWriter(output_file, keys)
             dict_writer.writeheader()
             dict_writer.writerows(self.output)
@@ -135,7 +137,7 @@ class Substitution:
         # get substitutions
         players_out = [p['web_name'] for p in self.players_to_remove]
         subs = [i + " > " + j for i, j in zip(players_out, self.subs)]
-        new_team_score = score_team(self.current_team)
+        new_team_score = score_team(self.current_team, self.opt_parameter)
         optimisation_data = {
             'subs': subs
         }
@@ -225,8 +227,8 @@ class Substitution:
         remove_positions = []
         player_out_cost = 0
         for player in self.players_to_remove:
-            remove_positions.append(player['position'])
-            player_out_cost += float(player['price'])
+            remove_positions.append(player['position'])     # [p['position'] for p in self.players_to_remove
+            player_out_cost += float(player['price'])       # sum(item['gold'] for item in myLIst)
         new_budget = self.account_data['bank'] + player_out_cost
 
         # constrain the positions
@@ -248,14 +250,12 @@ class Substitution:
 
 
 
-class Optimise:
-    def __init__(self, opt_parameter, data, optimal_team=False, sim_type='sub', n_subs=2):
+class Wildcard:
+    def __init__(self, opt_parameter, data, optimal_team=False):
         # set instance variables
         self.prob = None
         self.decision = None
         self.opt_max_min = None
-        self.sim_type = sim_type
-        self.n_subs = n_subs
         self.opt_parameter = opt_parameter
         self.optimal_team = optimal_team
         self.max_price = 999
@@ -321,7 +321,7 @@ class Optimise:
         sum_price = 0
         for player in self.squad:
             player_data = self.lookup_player_by_web_name(player)
-            print(player_data['web_name'])
+            print(player_data['web_name'], '-', player_data[self.opt_parameter])
             sum_opt += float(player_data[self.opt_parameter])
             sum_price += float(player_data['price'])
         print('\nTotal team cost - £', round(sum_price,2))
@@ -344,10 +344,7 @@ class Optimise:
         self.prob += sum(self.opt_list[i] * self.decision[i] for i in self.data_length)
 
         # Constraint definition
-        if self.sim_type == 'wildcard':
-            self.add_wildcard_constraints()
-        elif self.sim_type == 'sub':
-            self.add_sub_constraints()
+        self.add_wildcard_constraints()
 
         # solve problem
         self.prob.solve()

@@ -1,5 +1,5 @@
 from FPLManager.get_data import GetData
-from FPLManager.opt import Optimise
+from FPLManager.opt import Wildcard
 from FPLManager.opt import Substitution
 from FPLManager.sim import Simulation
 import pickle
@@ -27,6 +27,7 @@ processed_data = GetData(username, password, reduce=True).data
 # squad = sim.find_n_replacements(num_replacements=3, max_iterations=5000000, order_by="total_score", num_teams=100, desired=[], outfield_only=False)
 
 t0 = time.time()
-sub = Substitution('KPI', processed_data, n_subs=1)
+# wc = Wildcard('ep_next', processed_data, optimal_team=False)
+sub = Substitution('ep_next', processed_data, n_subs=4)
 t1 = time.time()
 print(t1-t0)
