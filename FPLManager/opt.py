@@ -4,37 +4,16 @@ import csv
 
 
 def score_team(t, opt):
-    sum_form_n = sum_value(t, 'form_n')
-    sum_price_change_n = sum_value(t, 'price_change_n')
-    sum_3_game_difficulty_n = sum_value(t, '3_game_difficulty_n')
-    sum_ict_index_n = sum_value(t, 'ict_index_n')
-    sum_KPI_n = sum_value(t, 'KPI_n')
-    total_score = round(sum_form_n + sum_price_change_n - sum_3_game_difficulty_n + sum_ict_index_n, 2)
-    sum_KPI_score = sum_value(t, 'KPI_score')
-    total_opt_param = sum_value(t, opt)
-    total_cost = sum_value(t, 'price')
     return {
-        'sum_form_n': sum_form_n,
-        'sum_price_change_n': sum_price_change_n,
-        'sum_3_game_difficulty_n': sum_3_game_difficulty_n,
-        'sum_ict_index_n': sum_ict_index_n,
-        'sum_KPI_n': sum_KPI_n,
-        'total_score': total_score,
-        'sum_'+opt: total_opt_param,
-        'sum_KPI_score': sum_KPI_score,
-        'total_cost': total_cost
+        'sum_form': sum(float(p['form']) for p in t),
+        'sum_price_change': sum(float(p['price_change']) for p in t),
+        'sum_3_game_difficulty': sum(float(p['3_game_difficulty']) for p in t),
+        'sum_ict_index': sum(float(p['ict_index']) for p in t),
+        'sum_KPI_n': sum(float(p['KPI']) for p in t),
+        'sum_' + opt: sum(float(p[opt]) for p in t),
+        'total_cost': sum(float(p['price']) for p in t)
     }
 
-def sum_value(t, attribute):
-    """
-    :param t: A list of player dictionaries
-    :param attribute: The attribute that you want to sum
-    :return: The sum of the specified attribute, rounded to 2 d.p
-    """
-    s = 0
-    for player in t:
-        s += float(player[attribute])
-    return round(s, 2)
 
 class Substitution:
     def __init__(self, opt_parameter, data, optimal_team=False, n_subs=2):
@@ -53,30 +32,18 @@ class Substitution:
         self.team_data = data.team_list
         self.account_data = data.account_data
 
-        # remove existing players from master table
-        # first make a copy of master table for output
-        self.master_table_copy = self.master_table.copy()
-        for idx, p in enumerate(self.master_table):
-            for player in self.team_data:
-                if player['id'] == p['id']:
-                    self.master_table.pop(idx)
+        self.remove_owned_players()
+        self.define_opt_type()
+        self.define_budget()
 
         # construct optimisation parameters lists
         self.player_list = [p['web_name'] for p in self.master_table]
         self.team_list = [p['team'] for p in self.master_table]
         self.master_team_list = [p['id'] for p in self.master_table]
-        self.price_list = self.convert_str_list_to_float([p['price'] for p in self.master_table])
-        self.opt_list = self.convert_str_list_to_float([p[self.opt_parameter] for p in self.master_table])
+        self.price_list = [float(item) for item in [p['price'] for p in self.master_table]]
+        self.opt_list = [float(item) for item in [p[self.opt_parameter] for p in self.master_table]]
 
-        # calculate more parameters
-        self.define_opt_type()
-        self.define_budget()
-
-        # score current or 'old' team
-        self.ots = score_team(self.team_data, self.opt_parameter)
-        self.old_team_score = {}
-        for key in self.ots:
-            self.old_team_score['old_' + key] = self.ots[key]
+        self.score_current_team()
 
         self.gk_list = self.create_position_list('G')
         self.df_list = self.create_position_list('D')
@@ -89,9 +56,12 @@ class Substitution:
         # get length of data
         self.data_length = range(len(self.player_list))
 
-        # run some subs
+        # run sub simulation
         self.run_substitution_simulation()
 
+        self.output_data()
+
+    def output_data(self):
         # output data
         keys = self.output[0].keys()
         with open('./output_data/substitution_sim.csv', 'w', newline='') as output_file:
@@ -99,12 +69,28 @@ class Substitution:
             dict_writer.writeheader()
             dict_writer.writerows(self.output)
 
+    def score_current_team(self):
+        # score current or 'old' team
+        self.ots = score_team(self.team_data, self.opt_parameter)
+        self.old_team_score = {}
+        for key in self.ots:
+            self.old_team_score['old_' + key] = self.ots[key]
+
+    def remove_owned_players(self):
+        # remove existing players from master table
+        # first make a copy of master table for output
+        self.master_table_copy = self.master_table.copy()
+        for idx, p in enumerate(self.master_table):
+            for player in self.team_data:
+                if player['id'] == p['id']:
+                    self.master_table.pop(idx)
 
     def run_substitution_simulation(self):
         idx = 0
         for subs in self.subs_to_make:
             idx += 1
-            print(idx, 'out of', self.total_iterations, 'simulations complete', round(100*idx/self.total_iterations,2),'%')
+            print(idx, 'out of', self.total_iterations, 'simulations complete',
+                  round(100 * idx / self.total_iterations, 2), '%')
 
             # create copy of current team
             self.current_team = self.team_data.copy()
@@ -118,7 +104,7 @@ class Substitution:
             # run optimiser
             self.subs = self.run_optimisation()
 
-            #
+            # post process
             self.add_players_to_current_team()
             self.prepare_output()
 
@@ -149,10 +135,9 @@ class Substitution:
         tester = True
 
     def get_subs(self):
-        team_list = list(range(0,15))
+        team_list = list(range(0, 15))
         self.total_iterations = len(list(itertools.combinations(team_list, self.n_subs)))
         return itertools.combinations(team_list, self.n_subs)
-
 
     def define_budget(self):
         if not self.optimal_team:
@@ -173,33 +158,6 @@ class Substitution:
             else:
                 list_result.append(0)
         return list_result
-
-    def construct_list(self, attribute):
-        l = []
-        for player in self.master_table:
-            l.append(player[attribute])
-        return l
-
-    @staticmethod
-    def convert_str_list_to_float(lst):
-        return [float(i) for i in lst]
-
-
-    def print_opt_squad_data(self, squad):
-        sum_opt = 0
-        sum_price = 0
-        for player in squad:
-            player_data = self.lookup_player_by_web_name(player)
-            print(player_data['web_name'])
-            sum_opt += float(player_data[self.opt_parameter])
-            sum_price += float(player_data['price'])
-        print('\nTotal team cost £', round(sum_price,2))
-        print('Total team', self.opt_parameter, round(sum_opt,2))
-
-    def lookup_player_by_web_name(self, web_name):
-        for p in self.master_table_copy:
-            if p['web_name'] == web_name:
-                return p
 
     def run_optimisation(self):
 
@@ -223,13 +181,12 @@ class Substitution:
 
     def add_sub_constraints(self):
 
-        # calculate these players attributes
-        remove_positions = []
-        player_out_cost = 0
-        for player in self.players_to_remove:
-            remove_positions.append(player['position'])     # [p['position'] for p in self.players_to_remove
-            player_out_cost += float(player['price'])       # sum(item['gold'] for item in myLIst)
+        # calculate new budget
+        player_out_cost = sum(float(p['price']) for p in self.players_to_remove)
         new_budget = self.account_data['bank'] + player_out_cost
+
+        # calculate positions being removed
+        remove_positions = [p['position'] for p in self.players_to_remove]
 
         # constrain the positions
         self.prob += sum(self.gk_list[i] * self.decision[i] for i in self.data_length) == remove_positions.count('G')
@@ -238,16 +195,14 @@ class Substitution:
         self.prob += sum(self.fw_list[i] * self.decision[i] for i in self.data_length) == remove_positions.count('F')
 
         # total cost constraint
-        self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= new_budget  # cost
+        self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= new_budget
 
         # num of players in team constraint
         team_id_list = [p['team'] for p in self.current_team]
         for i in range(1, 20):
-            self.prob += sum([1 * self.decision[j] for j in range(len(team_id_list)) if team_id_list[j] == i]) + team_id_list.count(i) <= 3
-
-
-
-
+            self.prob += sum(
+                [1 * self.decision[j] for j in range(len(team_id_list)) if team_id_list[j] == i]) + team_id_list.count(
+                i) <= 3
 
 
 class Wildcard:
@@ -266,10 +221,11 @@ class Wildcard:
         self.account_data = data.account_data
 
         # construct optimisation parameters lists
-        self.player_list = self.construct_list('web_name')
-        self.team_list = self.construct_list('team')
-        self.price_list = self.convert_str_list_to_float(self.construct_list('price'))
-        self.opt_list = self.convert_str_list_to_float(self.construct_list(self.opt_parameter))
+        self.player_list = [p['web_name'] for p in self.master_table]
+        self.team_list = [p['team'] for p in self.master_table]
+        self.master_team_list = [p['id'] for p in self.master_table]
+        self.price_list = [float(item) for item in [p['price'] for p in self.master_table]]
+        self.opt_list = [float(item) for item in [p[self.opt_parameter] for p in self.master_table]]
 
         # calculate more parameters
         self.define_opt_type()
@@ -284,7 +240,6 @@ class Wildcard:
 
         # post processing
         self.print_opt_squad_data()
-
 
     def define_budget(self):
         if not self.optimal_team:
@@ -324,8 +279,8 @@ class Wildcard:
             print(player_data['web_name'], '-', player_data[self.opt_parameter])
             sum_opt += float(player_data[self.opt_parameter])
             sum_price += float(player_data['price'])
-        print('\nTotal team cost - £', round(sum_price,2))
-        print('Total team', self.opt_parameter,'-', round(sum_opt,2))
+        print('\nTotal team cost - £', round(sum_price, 2))
+        print('Total team', self.opt_parameter, '-', round(sum_opt, 2))
 
     def lookup_player_by_web_name(self, web_name):
         for p in self.master_table:
@@ -352,8 +307,6 @@ class Wildcard:
         # extract selected players and return
         return [self.player_list[i] for i in self.data_length if self.decision[i].varValue]
 
-
-
     def add_wildcard_constraints(self):
 
         self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= self.max_price  # cost
@@ -362,9 +315,8 @@ class Wildcard:
         self.prob += sum(self.md_list[i] * self.decision[i] for i in self.data_length) == 5  # number of midfielders
         self.prob += sum(self.fw_list[i] * self.decision[i] for i in self.data_length) == 3  # number of forwards
 
-        for i in range(1,20):
+        for i in range(1, 20):
             self.prob += sum([1 * self.decision[j] for j in self.data_length if self.team_list[j] == i]) <= 3
-
 
         ###################################
         # ALTERNATE METHOD (I THINK THIS WENT WRONG SOMEHOW)
@@ -381,4 +333,4 @@ class Wildcard:
         #     self.prob += sum([1 * self.decision[j] for j in self.data_length if self.position_list[j] == i]) <= \
         #                  allowed_p[idx]
 
-        ender=True
+        ender = True

@@ -33,7 +33,6 @@ class GetData:
         else:
             return False
 
-
     def use_cached_data(self):
         data = {
             'account_data': self.open_pickle('./data/account_data.pickle'),
@@ -45,7 +44,6 @@ class GetData:
         }
 
         return ProcessData(self.reduce, **data)
-
 
     def get_data_from_web(self):
 
@@ -59,9 +57,15 @@ class GetData:
             print('    Logged in successfully!')
             return ProcessData(self.reduce, web_session=web)
 
-
     def get_data(self):
-        if self.older_than_one_hour('./data/account_data.pickle'):
+        try:
+            need_new_data = self.older_than_one_hour('./data/account_data.pickle')
+        except:
+            # no data exists
+            return self.get_data_from_web()
+
+        # data exists
+        if need_new_data:
             return self.get_data_from_web()
         else:
             return self.use_cached_data()

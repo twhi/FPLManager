@@ -23,11 +23,9 @@ password = ''
 # 'total_score': total_score
 
 processed_data = GetData(username, password, reduce=True).data
-# sim = Simulation(processed_data)
-# squad = sim.find_n_replacements(num_replacements=3, max_iterations=5000000, order_by="total_score", num_teams=100, desired=[], outfield_only=False)
 
 t0 = time.time()
-# wc = Wildcard('ep_next', processed_data, optimal_team=False)
-sub = Substitution('ep_next', processed_data, n_subs=4)
+wc = Wildcard('KPI', processed_data, optimal_team=False)
+# sub = Substitution('ep_next', processed_data, n_subs=2)
 t1 = time.time()
 print(t1-t0)
