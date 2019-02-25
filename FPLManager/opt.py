@@ -188,6 +188,9 @@ class Substitution:
         # calculate positions being removed
         remove_positions = [p['position'] for p in self.players_to_remove]
 
+        # get team IDs for players in current team
+        team_id_list = [p['team'] for p in self.current_team]
+
         # constrain the positions
         self.prob += sum(self.gk_list[i] * self.decision[i] for i in self.data_length) == remove_positions.count('G')
         self.prob += sum(self.df_list[i] * self.decision[i] for i in self.data_length) == remove_positions.count('D')
@@ -198,11 +201,8 @@ class Substitution:
         self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= new_budget
 
         # num of players in team constraint
-        team_id_list = [p['team'] for p in self.current_team]
         for i in range(1, 20):
-            self.prob += sum(
-                [1 * self.decision[j] for j in range(len(team_id_list)) if team_id_list[j] == i]) + team_id_list.count(
-                i) <= 3
+            self.prob += sum([1 * self.decision[j] for j in range(len(team_id_list)) if team_id_list[j] == i]) + team_id_list.count(i) <= 3
 
 
 class Wildcard:

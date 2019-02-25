@@ -7,10 +7,11 @@ from FPLManager.web_stuff import WebStuff
 
 
 class GetData:
-    def __init__(self, u, p, reduce):
+    def __init__(self, u, p, reduce, refresh):
         self.username = u
         self.password = p
         self.reduce = reduce
+        self.refresh = refresh
         self.data = self.get_data()
 
     @staticmethod
@@ -65,7 +66,7 @@ class GetData:
             return self.get_data_from_web()
 
         # data exists
-        if need_new_data:
+        if need_new_data or self.refresh:
             return self.get_data_from_web()
         else:
             return self.use_cached_data()
