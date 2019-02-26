@@ -22,11 +22,11 @@ password = ''
 # 'total_cost': total_cost,
 # 'total_score': total_score
 
-processed_data = GetData(username, password, reduce=True, refresh=True).data
+processed_data = GetData(username, password, reduce=True, refresh=False).data
 
 t0 = time.time()
-# wc = Wildcard('KPI', processed_data, optimal_team=False)
-sub = Substitution('KPI', processed_data, n_subs=4, optimal_team=False)
+wc = Wildcard('KPI', processed_data, optimal_team=True)
+# sub = Substitution('team', processed_data, n_subs=4, optimal_team=False)
 t1 = time.time()
 print(t1-t0)
 

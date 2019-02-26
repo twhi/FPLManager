@@ -50,6 +50,28 @@ class Substitution:
         self.md_list = self.create_position_list('M')
         self.fw_list = self.create_position_list('F')
 
+        # horrid code, will refactor once constraints are working
+        self.team_1 = self.create_team_list(1)
+        self.team_2 = self.create_team_list(2)
+        self.team_3 = self.create_team_list(3)
+        self.team_4 = self.create_team_list(4)
+        self.team_5 = self.create_team_list(5)
+        self.team_6 = self.create_team_list(6)
+        self.team_7 = self.create_team_list(7)
+        self.team_8 = self.create_team_list(8)
+        self.team_9 = self.create_team_list(9)
+        self.team_10 = self.create_team_list(10)
+        self.team_11 = self.create_team_list(11)
+        self.team_12 = self.create_team_list(12)
+        self.team_13 = self.create_team_list(13)
+        self.team_14 = self.create_team_list(14)
+        self.team_15 = self.create_team_list(15)
+        self.team_16 = self.create_team_list(16)
+        self.team_17 = self.create_team_list(17)
+        self.team_18 = self.create_team_list(18)
+        self.team_19 = self.create_team_list(19)
+        self.team_20 = self.create_team_list(20)
+
         # sub combinations
         self.subs_to_make = self.get_subs()
 
@@ -60,6 +82,15 @@ class Substitution:
         self.run_substitution_simulation()
 
         self.output_data()
+
+    def create_team_list(self, team):
+        list_result = []
+        for p in self.master_table:
+            if int(p['team']) == team:
+                list_result.append(1)
+            else:
+                list_result.append(0)
+        return list_result
 
     def output_data(self):
         # output data
@@ -200,9 +231,27 @@ class Substitution:
         # total cost constraint
         self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= new_budget
 
-        # num of players in team constraint
-        for i in range(1, 20):
-            self.prob += sum([1 * self.decision[j] for j in range(len(team_id_list)) if team_id_list[j] == i]) + team_id_list.count(i) <= 3
+        # team constraints
+        self.prob += sum(self.team_1[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_2[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_3[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_4[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_5[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_6[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_7[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_8[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_9[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_10[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_11[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_12[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_13[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_14[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_15[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_16[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_17[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_18[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_19[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_20[i] * self.decision[i] for i in self.data_length) <= 3
 
 
 class Wildcard:
@@ -235,11 +284,42 @@ class Wildcard:
         self.md_list = self.create_position_list('M')
         self.fw_list = self.create_position_list('F')
 
+        # horrid code, will refactor once constraints are working
+        self.team_1 = self.create_team_list(1)
+        self.team_2 = self.create_team_list(2)
+        self.team_3 = self.create_team_list(3)
+        self.team_4 = self.create_team_list(4)
+        self.team_5 = self.create_team_list(5)
+        self.team_6 = self.create_team_list(6)
+        self.team_7 = self.create_team_list(7)
+        self.team_8 = self.create_team_list(8)
+        self.team_9 = self.create_team_list(9)
+        self.team_10 = self.create_team_list(10)
+        self.team_11 = self.create_team_list(11)
+        self.team_12 = self.create_team_list(12)
+        self.team_13 = self.create_team_list(13)
+        self.team_14 = self.create_team_list(14)
+        self.team_15 = self.create_team_list(15)
+        self.team_16 = self.create_team_list(16)
+        self.team_17 = self.create_team_list(17)
+        self.team_18 = self.create_team_list(18)
+        self.team_19 = self.create_team_list(19)
+        self.team_20 = self.create_team_list(20)
+
         self.data_length = range(len(self.player_list))
         self.squad = self.run_optimisation()
 
         # post processing
         self.print_opt_squad_data()
+
+    def create_team_list(self, team):
+        list_result = []
+        for p in self.master_table:
+            if int(p['team']) == team:
+                list_result.append(1)
+            else:
+                list_result.append(0)
+        return list_result
 
     def define_budget(self):
         if not self.optimal_team:
@@ -308,29 +388,31 @@ class Wildcard:
         return [self.player_list[i] for i in self.data_length if self.decision[i].varValue]
 
     def add_wildcard_constraints(self):
-
+        # position constraints
         self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= self.max_price  # cost
         self.prob += sum(self.gk_list[i] * self.decision[i] for i in self.data_length) == 2  # number of goalies
         self.prob += sum(self.df_list[i] * self.decision[i] for i in self.data_length) == 5  # number of defenders
         self.prob += sum(self.md_list[i] * self.decision[i] for i in self.data_length) == 5  # number of midfielders
         self.prob += sum(self.fw_list[i] * self.decision[i] for i in self.data_length) == 3  # number of forwards
 
-        for i in range(1, 20):
-            self.prob += sum([1 * self.decision[j] for j in self.data_length if self.team_list[j] == i]) <= 3
-
-        ###################################
-        # ALTERNATE METHOD (I THINK THIS WENT WRONG SOMEHOW)
-        # Constraint definition
-        # number_of_teams = 20
-        # positions = ['G', 'D', 'M', 'F']
-        # allowed_p = [2, 5, 5, 3]
-        #
-        # # constrain max price
-        # self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= self.max_price  # cost
-        #
-        # # constrain number of players in each position
-        # for idx, i in enumerate(positions):
-        #     self.prob += sum([1 * self.decision[j] for j in self.data_length if self.position_list[j] == i]) <= \
-        #                  allowed_p[idx]
-
-        ender = True
+        # team constraints
+        self.prob += sum(self.team_1[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_2[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_3[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_4[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_5[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_6[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_7[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_8[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_9[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_10[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_11[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_12[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_13[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_14[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_15[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_16[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_17[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_18[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_19[i] * self.decision[i] for i in self.data_length) <= 3
+        self.prob += sum(self.team_20[i] * self.decision[i] for i in self.data_length) <= 3
