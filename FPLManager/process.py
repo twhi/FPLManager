@@ -73,13 +73,9 @@ class ProcessData(FplData, PriceData):
         return sum(KPI_list) / float(len(KPI_list))
 
     def reduce_data(self):
-        self.average_KPI = self.get_average_KPI()
-
+        # remove player if not expected to score any points next week
         for idx, player in enumerate(self.master_table):
-
-            if player['ict_index_n'] == 0:
-                del self.master_table[idx]
-            elif player['KPI_n'] < self.average_KPI:
+            if float(player['ep_next']) <= 0.0:
                 del self.master_table[idx]
 
     def normalise_values(self):
