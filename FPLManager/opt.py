@@ -134,6 +134,20 @@ class Substitution:
             # post process
             self.add_players_to_current_team()
             self.prepare_output()
+            self.print_opt_squad_data()
+
+    def print_opt_squad_data(self):
+        sum_opt = 0
+        sum_price = 0
+        for player in self.current_team:
+            print(player['web_name'], player['position'], player['team'],
+                  player[self.opt_parameter], sep=';')
+        print('######################')
+
+    def lookup_player_by_web_name(self, web_name):
+        for p in self.master_table:
+            if p['web_name'] == web_name:
+                return p
 
     def get_player_data_by_webname(self, n):
         # should pre allocate this for speed
@@ -204,16 +218,21 @@ class Substitution:
         # calculate positions being removed
         remove_positions = [p['position'] for p in self.players_to_remove]
 
+
+
+        # team constraints
+        team_id_list = [p['team'] for p in self.current_team]
+        for team in self.team_constraints:
+            # self.prob += sum(self.team_constraints[team][i] * self.decision[i] for i in self.data_length) <= 3
+            self.prob += sum(self.team_constraints[team][i] * self.decision[i] for i in self.data_length) + team_id_list.count(team) <= 3
+
+
         # position constraints
         for pos in self.pos_constraints:
             self.prob += sum(self.pos_constraints[pos][i] * self.decision[i] for i in self.data_length) == remove_positions.count(pos)
 
         # total cost constraint
         self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= new_budget
-
-        # team constraints
-        for team in self.team_constraints:
-            self.prob += sum(self.team_constraints[team][i] * self.decision[i] for i in self.data_length) <= 3
 
 
 class Wildcard:
@@ -363,15 +382,18 @@ class Wildcard:
         return [self.player_list[i] for i in self.data_length if self.decision[i].varValue]
 
     def add_wildcard_constraints(self):
-        # price constraint
-        self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= self.max_price  # cost
 
-        # position constraints
-        for pos in self.pos_constraints:
-            self.prob += sum(self.pos_constraints[pos][i] * self.decision[i] for i in self.data_length) == \
-                         self.max_players_per_position[pos]
-            print(self.max_players_per_position[pos])
+        # for some reason, the order in which the constraints are added,
+        # the most correct order is Team > Position > Cost, not entirely sure why
+        # might need to consult stack overflow
 
         # team constraints
         for team in self.team_constraints:
             self.prob += sum(self.team_constraints[team][i] * self.decision[i] for i in self.data_length) <= 3
+
+        # position constraints
+        for pos in self.pos_constraints:
+            self.prob += sum(self.pos_constraints[pos][i] * self.decision[i] for i in self.data_length) == self.max_players_per_position[pos]
+
+        # price constraint
+        self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= self.max_price  # cost
