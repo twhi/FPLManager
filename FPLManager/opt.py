@@ -11,7 +11,7 @@ def score_team(t, opt):
         'sum_ict_index': sum(float(p['ict_index']) for p in t),
         'sum_KPI_n': sum(float(p['KPI']) for p in t),
         'sum_' + opt: sum(float(p[opt]) for p in t),
-        'total_cost': sum(float(p['price']) for p in t)
+        'total_cost': sum(float(p['now_cost']) for p in t) / 10
     }
 
 
@@ -40,7 +40,7 @@ class Substitution:
         self.player_list = [p['web_name'] for p in self.master_table]
         self.team_list = [p['team'] for p in self.master_table]
         self.master_team_list = [p['id'] for p in self.master_table]
-        self.price_list = [float(item) for item in [p['price'] for p in self.master_table]]
+        self.price_list = [float(item) / 10 for item in [p['now_cost'] for p in self.master_table]]
         self.opt_list = [float(item) for item in [p[self.opt_parameter] for p in self.master_table]]
 
         self.score_current_team()
@@ -134,7 +134,7 @@ class Substitution:
             # post process
             self.add_players_to_current_team()
             self.prepare_output()
-            self.print_opt_squad_data()
+            # self.print_opt_squad_data()
 
     def print_opt_squad_data(self):
         sum_opt = 0
@@ -156,9 +156,14 @@ class Substitution:
                 return player
 
     def add_players_to_current_team(self):
+        new_cost = 0
         for player in self.subs:
             player_data = self.get_player_data_by_webname(player)
+            new_cost += round(float(player_data['now_cost']),1) / 10
             self.current_team.append(player_data)
+        if round(new_cost, 1) > round(self.new_budget, 1):
+            print('it fucked up')
+            exit()
 
     def prepare_output(self):
         # get substitutions
@@ -172,6 +177,12 @@ class Substitution:
         optimisation_data.update(self.old_team_score)
 
         self.output.append(optimisation_data)
+
+        total_cost = sum(float(p['now_cost']) for p in self.current_team) / 10
+
+        if round(total_cost, 1) > round((self.account_data['bank'] + self.account_data['total_balance']), 1):
+            print('total balance exceeded')
+            exit()
 
     def get_subs(self):
         team_list = list(range(0, 15))
@@ -212,13 +223,12 @@ class Substitution:
     def add_sub_constraints(self):
 
         # calculate new budget
-        player_out_cost = sum(float(p['price']) for p in self.players_to_remove)
+        player_out_cost = sum(float(p['now_cost']) for p in self.players_to_remove) / 10
         new_budget = self.account_data['bank'] + player_out_cost
+        self.new_budget = round(new_budget,1)
 
         # calculate positions being removed
         remove_positions = [p['position'] for p in self.players_to_remove]
-
-
 
         # team constraints
         team_id_list = [p['team'] for p in self.current_team]
@@ -260,7 +270,7 @@ class Wildcard:
         self.player_list = [p['web_name'] for p in self.master_table]
         self.team_list = [p['team'] for p in self.master_table]
         self.master_team_list = [p['id'] for p in self.master_table]
-        self.price_list = [float(item) for item in [p['price'] for p in self.master_table]]
+        self.price_list = [float(item)/10 for item in [p['now_cost'] for p in self.master_table]]
         self.opt_list = [float(item) for item in [p[self.opt_parameter] for p in self.master_table]]
 
         # calculate more parameters
@@ -352,7 +362,7 @@ class Wildcard:
             print(player_data['web_name'], player_data['position'], player_data['team'], '-',
                   player_data[self.opt_parameter], sep=';')
             sum_opt += float(player_data[self.opt_parameter])
-            sum_price += float(player_data['price'])
+            sum_price += float(player_data['now_cost']) / 10
         print('\nTotal team cost - £', round(sum_price, 2))
         print('Total team', self.opt_parameter, '-', round(sum_opt, 2))
 

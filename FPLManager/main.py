@@ -13,11 +13,11 @@ def save_to_pickle(variable, filename):
 username = ''
 password = ''
 
-processed_data = GetData(username, password, reduce=False, refresh=False).data
+processed_data = GetData(username, password, reduce=True, refresh=False).data
 
 t0 = time.time()
 # wc = Wildcard('team', processed_data, optimal_team=False)
-sub = Substitution('team', processed_data, n_subs=14, optimal_team=False)
+sub = Substitution('ep_next', processed_data, n_subs=4, optimal_team=False)
 t1 = time.time()
 print(t1-t0)
 
