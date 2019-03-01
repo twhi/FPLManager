@@ -5,12 +5,12 @@ import csv
 
 def score_team(t, opt):
     return {
-        'sum_form': sum(float(p['form']) for p in t),
-        'sum_price_change': sum(float(p['price_change']) for p in t),
-        'sum_3_game_difficulty': sum(float(p['3_game_difficulty']) for p in t),
-        'sum_ict_index': sum(float(p['ict_index']) for p in t),
-        'sum_KPI_n': sum(float(p['KPI']) for p in t),
-        'sum_' + opt: sum(float(p[opt]) for p in t),
+        'team_form': sum(float(p['form']) for p in t),
+        'team_price_change': sum(float(p['price_change']) for p in t),
+        'team_3_game_difficulty': sum(float(p['3_game_difficulty']) for p in t),
+        'team_ict_index': sum(float(p['ict_index']) for p in t),
+        'team_KPI': sum(float(p['KPI']) for p in t),
+        opt: sum(float(p[opt]) for p in t),
         'total_cost': sum(float(p['now_cost']) for p in t) / 10
     }
 
@@ -38,8 +38,6 @@ class Substitution:
 
         # construct optimisation parameters lists
         self.player_list = [p['web_name'] for p in self.master_table]
-        self.team_list = [p['team'] for p in self.master_table]
-        self.master_team_list = [p['id'] for p in self.master_table]
         self.price_list = [float(item) / 10 for item in [p['now_cost'] for p in self.master_table]]
         self.opt_list = [float(item) for item in [p[self.opt_parameter] for p in self.master_table]]
 
@@ -90,11 +88,13 @@ class Substitution:
 
     def output_data(self):
         # output data
-        keys = self.output[0].keys()
+        output = sorted(self.output, key=lambda k: float(k[self.opt_parameter]), reverse=True)
+        self.results = output
+        keys = output[0].keys()
         with open('./output_data/substitution_sim.csv', 'w', newline='') as output_file:
             dict_writer = csv.DictWriter(output_file, keys)
             dict_writer.writeheader()
-            dict_writer.writerows(self.output)
+            dict_writer.writerows(output)
 
     def score_current_team(self):
         # score current or 'old' team
@@ -144,10 +144,6 @@ class Substitution:
                   player[self.opt_parameter], sep=';')
         print('######################')
 
-    def lookup_player_by_web_name(self, web_name):
-        for p in self.master_table:
-            if p['web_name'] == web_name:
-                return p
 
     def get_player_data_by_webname(self, n):
         # should pre allocate this for speed
@@ -161,9 +157,6 @@ class Substitution:
             player_data = self.get_player_data_by_webname(player)
             new_cost += round(float(player_data['now_cost']),1) / 10
             self.current_team.append(player_data)
-        if round(new_cost, 1) > round(self.new_budget, 1):
-            print('it fucked up')
-            exit()
 
     def prepare_output(self):
         # get substitutions
@@ -225,7 +218,6 @@ class Substitution:
         # calculate new budget
         player_out_cost = sum(float(p['now_cost']) for p in self.players_to_remove) / 10
         new_budget = self.account_data['bank'] + player_out_cost
-        self.new_budget = round(new_budget,1)
 
         # calculate positions being removed
         remove_positions = [p['position'] for p in self.players_to_remove]
@@ -233,9 +225,7 @@ class Substitution:
         # team constraints
         team_id_list = [p['team'] for p in self.current_team]
         for team in self.team_constraints:
-            # self.prob += sum(self.team_constraints[team][i] * self.decision[i] for i in self.data_length) <= 3
             self.prob += sum(self.team_constraints[team][i] * self.decision[i] for i in self.data_length) + team_id_list.count(team) <= 3
-
 
         # position constraints
         for pos in self.pos_constraints:
@@ -397,13 +387,15 @@ class Wildcard:
         # the most correct order is Team > Position > Cost, not entirely sure why
         # might need to consult stack overflow
 
-        # team constraints
-        for team in self.team_constraints:
-            self.prob += sum(self.team_constraints[team][i] * self.decision[i] for i in self.data_length) <= 3
 
         # position constraints
         for pos in self.pos_constraints:
-            self.prob += sum(self.pos_constraints[pos][i] * self.decision[i] for i in self.data_length) == self.max_players_per_position[pos]
+            self.prob += sum(self.pos_constraints[pos][i] * self.decision[i] for i in self.data_length) == \
+                         self.max_players_per_position[pos]
+
+        # team constraints
+        for team in self.team_constraints:
+            self.prob += sum(self.team_constraints[team][i] * self.decision[i] for i in self.data_length) <= 3
 
         # price constraint
         self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= self.max_price  # cost
