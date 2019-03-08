@@ -11,7 +11,7 @@ def score_team(t, opt):
         'team_ict_index': sum(float(p['ict_index']) for p in t),
         'team_KPI': sum(float(p['KPI']) for p in t),
         opt: sum(float(p[opt]) for p in t),
-        'total_cost': sum(float(p['now_cost']) for p in t) / 10
+        'total_cost': sum(float(p['sell_price']) for p in t)
     }
 
 
@@ -130,6 +130,8 @@ class Substitution:
 
             # run optimiser
             self.subs = self.run_optimisation()
+            if 'Sterling' in self.subs:
+                brer = True
 
             # post process
             self.add_players_to_current_team()
@@ -149,6 +151,7 @@ class Substitution:
         # should pre allocate this for speed
         for player in self.master_table:
             if player['web_name'] == n:
+                player.update({'sell_price': round(float(player['now_cost']), 1) / 10})
                 return player
 
     def add_players_to_current_team(self):
@@ -171,7 +174,7 @@ class Substitution:
 
         self.output.append(optimisation_data)
 
-        total_cost = sum(float(p['now_cost']) for p in self.current_team) / 10
+        total_cost = sum(float(p['sell_price']) for p in self.current_team) / 10
         # for p in self.current_team:
         #     print(p['web_name'], float(p['now_cost'])/10)
 
@@ -217,7 +220,7 @@ class Substitution:
     def add_sub_constraints(self):
 
         # calculate new budget
-        player_out_cost = sum(float(p['now_cost']) for p in self.players_to_remove) / 10
+        player_out_cost = sum(float(p['sell_price']) for p in self.players_to_remove)
         new_budget = self.account_data['bank'] + player_out_cost
 
         # calculate positions being removed

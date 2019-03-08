@@ -12,10 +12,10 @@ username = ''
 password = ''
 acc_id = 1255473
 
-processed_data = GetData(username, password, acc_id, reduce=False, refresh=True).data
-tester = True
-# for i in processed_data.master_table:
-#     print(i['web_name'], i['ep_this'], i['ep_next'], i['KPI'], i['event_points'], sep=';')
+processed_data = GetData(username, password, acc_id, reduce=False, refresh=False).data
+
+for p in processed_data.master_table:
+    print(p['web_name'], p['KPI'], p['now_cost'], sep=';')
 
 # TODO get selling_price from processed_data.team_info
 # TODO duplicate names causing absolute misery, need to figure out how to handle these
@@ -24,10 +24,10 @@ tester = True
 # todo if login fails then fall back on the squad id method
 
 
-# wc = Wildcard('KPI', processed_data, optimal_team=False)
+wc = Wildcard('ep_next', processed_data, optimal_team=False)
 # sub = Substitution('KPI', processed_data, n_subs=1, optimal_team=False)
 # print('Simulation complete. Results have been output to a CSV')
 
-lineup = Lineup(processed_data.team_list, param='KPI').print_lineup()
+# lineup = Lineup(processed_data.team_list, param='ep_next').print_lineup()
 
 

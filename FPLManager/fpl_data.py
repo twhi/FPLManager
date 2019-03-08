@@ -22,10 +22,7 @@ class FplData:
         return account_data
 
     def get_team_list_data(self):
-        if self.login_status:
-            team_data_url = 'https://fantasy.premierleague.com/drf/my-team/{0}/'.format(str(self.account_data['unique_id']))
-        else:
-            team_data_url = "https://fantasy.premierleague.com/drf/entry/{0}/event/29/picks".format(self.acc_id)
+        team_data_url = 'https://fantasy.premierleague.com/drf/my-team/{0}/'.format(str(self.account_data['unique_id']))
         team_data_s = self.session.get(team_data_url).text
         return json.loads(team_data_s)['picks']
 
