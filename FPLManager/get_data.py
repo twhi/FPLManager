@@ -42,7 +42,8 @@ class GetData:
             'team_list': self.open_pickle('./data/team_list.pickle'),
             'team_info': self.open_pickle('./data/team_info.pickle'),
             'player_price_data': self.open_pickle('./data/player_price_data.pickle'),
-            'player_stats_data': self.open_pickle('./data/player_stats_data.pickle')
+            'player_stats_data': self.open_pickle('./data/player_stats_data.pickle'),
+            'team_ids': self.open_pickle('./data/team_ids.pickle')
         }
 
         return ProcessData(self.reduce, **data)
