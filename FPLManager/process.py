@@ -35,16 +35,20 @@ class ProcessData(FplData, PriceData):
             self.driver.quit()
 
     def process_data(self):
-        self.team_list = self.get_team_list()
-        self.account_data['total_balance'] = sum(p['sell_price'] for p in self.team_list) + self.account_data['bank']
+        self.get_player_team_name()
         self.get_game_difficulties()
         self.get_price_data()
         self.get_stats_data()
         self.get_player_position()
-        self.normalise_values()
-        self.score_player()
+        self.team_list = self.get_team_list()
+        self.account_data['total_balance'] = sum(p['sell_price'] for p in self.team_list) + self.account_data['bank']
 
         self.give_current_team_indexes()
+
+    def get_player_team_name(self):
+        for p in self.master_table:
+            p['team_name'] = self.team_ids[p['team']]
+        ender = True
 
     def cache_data(self):
         # could probably be refactored
@@ -54,14 +58,8 @@ class ProcessData(FplData, PriceData):
         save_to_pickle(self.player_stats_data, './data/player_stats_data.pickle')
         save_to_pickle(self.team_list, './data/team_list.pickle')
         save_to_pickle(self.team_info, './data/team_info.pickle')
+        save_to_pickle(self.team_ids, './data/team_ids.pickle')
 
-    def score_player(self):
-        for player in self.master_table:
-            player['score'] = round(
-                player['form_n'] + player['price_change_n'] - player['3_game_difficulty_n'] + player['ict_index_n'], 2)
-            if player['score'] < 0:
-                player['score'] = 0
-            player['KPI_score'] = player['score'] + player['KPI_n']
 
     def give_current_team_indexes(self):
         for idx, player in enumerate(self.team_list):
@@ -79,10 +77,6 @@ class ProcessData(FplData, PriceData):
             if float(player['ep_next']) <= 0.0:
                 del self.master_table[idx]
 
-    def normalise_values(self):
-        attributes = ['form', 'price_change', '3_game_difficulty', 'ict_index', 'KPI']
-        for atr in attributes:
-            self.calculate_normalised_attribute(atr)
 
     def min_max_values(self, attribute):
         val_list = []
@@ -128,20 +122,18 @@ class ProcessData(FplData, PriceData):
         for p in self.master_table:
             player_found = False
             for player in self.player_price_data:
-                if player[1] == p['web_name']:
+                if player[1] == p['web_name'] and player[2] == p['team_name']:
                     p['price_change'] = player[14]
-                    p['price'] = player[6]
                     player_found = True
                     break
             # if the player isn't found then give them terrible attributes so that they're not accidentally used
             if not player_found:
                 p['price_change'] = -3
-                p['price'] = 20.0
 
     def get_stats_data(self):
         for p in self.master_table:
             for player in self.player_stats_data:
-                if player[1] == p['web_name']:
+                if player[1] == p['web_name'] and player[2] == p['team_name']:
                     p['KPI'] = player[13]
                     break
 
