@@ -34,12 +34,9 @@ class WebStuff:
 
     def log_into_fpl(self):
         login_url = 'https://users.premierleague.com/accounts/login/'
-        try:
-            self.login_status = self.session.post(login_url, data=self.payload)
-            print('Successfully logged in')
-        except:
-            print('Failed to login, using FPL team from last week')
-            self.login_status = False
+        self.login_status = self.session.post(login_url, data=self.payload)
+        print('Successfully logged in')
+
 
     def log_out_of_fpl(self):
         logout_url = 'https://users.premierleague.com/accounts/logout/?redirect_uri=https://fantasy.premierleague.com/&app=plfpl-web'

@@ -35,14 +35,15 @@ class ProcessData(FplData, PriceData):
             self.driver.quit()
 
     def process_data(self):
-        self.total_balance = round(self.account_data['bank'] + self.account_data['total_balance'], 1)
+        self.team_list = self.get_team_list()
+        self.account_data['total_balance'] = sum(p['sell_price'] for p in self.team_list) + self.account_data['bank']
         self.get_game_difficulties()
         self.get_price_data()
         self.get_stats_data()
         self.get_player_position()
         self.normalise_values()
         self.score_player()
-        self.team_list = self.get_team_list()
+
         self.give_current_team_indexes()
 
     def cache_data(self):
@@ -118,6 +119,7 @@ class ProcessData(FplData, PriceData):
         for p in self.team_info:
             for player in self.master_table:
                 if p['element'] == player['id']:
+                    player.update({'sell_price': p['selling_price'] / 10})
                     t_list.append(player)
                     break
         return t_list
