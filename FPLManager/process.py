@@ -18,7 +18,7 @@ class ProcessData(FplData, PriceData):
             web = kwargs.get('web_session')
             self.session = web.session
             self.driver = web.driver
-            FplData.__init__(self, self.session)
+            FplData.__init__(self, web)
             PriceData.__init__(self, web)
             self.process_data()
             self.cache_data()

@@ -5,7 +5,9 @@ class FplData:
 
     def __init__(self, session):
         print('Getting FPL data...')
-        self.session = session
+        self.login_status = session.login_status
+        self.session = session.session
+        self.acc_id = session.acc_id
         self.account_data = self.get_unique_account_data()
         self.team_info = self.get_team_list_data()
         self.master_table = self.get_master_table()
@@ -20,10 +22,13 @@ class FplData:
         return account_data
 
     def get_team_list_data(self):
-        team_data_url_template = 'https://fantasy.premierleague.com/drf/my-team/[account_id]/'
-        team_data_url = team_data_url_template.replace('[account_id]', str(self.account_data['unique_id']))
+        if self.login_status:
+            team_data_url = 'https://fantasy.premierleague.com/drf/my-team/{0}/'.format(str(self.account_data['unique_id']))
+        else:
+            team_data_url = "https://fantasy.premierleague.com/drf/entry/{0}/event/29/picks".format(self.acc_id)
         team_data_s = self.session.get(team_data_url).text
         return json.loads(team_data_s)['picks']
+
 
     def get_master_table(self):
         master_table_s = self.session.get('https://fantasy.premierleague.com/drf/elements').text

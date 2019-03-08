@@ -7,9 +7,10 @@ from FPLManager.web_stuff import WebStuff
 
 
 class GetData:
-    def __init__(self, u, p, reduce, refresh):
+    def __init__(self, u, p, i, reduce, refresh):
         self.username = u
         self.password = p
+        self.acc_id = i
         self.reduce = reduce
         self.refresh = refresh
         self.data = self.get_data()
@@ -52,11 +53,9 @@ class GetData:
             print('\nProcess failed. Incomplete credentials supplied.')
             exit()
 
-        web = WebStuff(self.username, self.password)
+        web = WebStuff(self.username, self.password, self.acc_id)
         web.log_into_fpl()
-        if web.login_status.status_code == 200:
-            print('    Logged in successfully!')
-            return ProcessData(self.reduce, web_session=web)
+        return ProcessData(self.reduce, web_session=web)
 
     def get_data(self):
         try:

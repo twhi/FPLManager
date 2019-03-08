@@ -172,10 +172,11 @@ class Substitution:
         self.output.append(optimisation_data)
 
         total_cost = sum(float(p['now_cost']) for p in self.current_team) / 10
+        # for p in self.current_team:
+        #     print(p['web_name'], float(p['now_cost'])/10)
 
         if round(total_cost, 1) > round((self.account_data['bank'] + self.account_data['total_balance']), 1):
             print('total balance exceeded')
-            exit()
 
     def get_subs(self):
         team_list = list(range(0, 15))
