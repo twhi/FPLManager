@@ -1,14 +1,14 @@
 class Lineup:
     def __init__(self, team, param):
         self.formations = {
-            '532': [1,5,3,2],
-            '523': [1,5,2,3],
-            '541': [1,5,4,1],
-            '451': [1,4,5,1],
-            '442': [1,4,4,2],
-            '433': [1,4,3,3],
-            '352': [1,3,5,2],
-            '343': [1,3,4,3]
+            '532': [1, 5, 3, 2],
+            '523': [1, 5, 2, 3],
+            '541': [1, 5, 4, 1],
+            '451': [1, 4, 5, 1],
+            '442': [1, 4, 4, 2],
+            '433': [1, 4, 3, 3],
+            '352': [1, 3, 5, 2],
+            '343': [1, 3, 4, 3],
         }
 
         self.positions = ['G', 'D', 'M', 'F']
@@ -25,7 +25,6 @@ class Lineup:
         self.sort_team_by_param()
         self.sort_team_by_position()
         self.lineup = self.choose_optimal_lineup()
-
 
     def sort_team_by_param(self):
         self.team = sorted(self.team_unsorted, key=lambda k: float(k[self.param]), reverse=True)
@@ -52,6 +51,7 @@ class Lineup:
 
             # if it's the best one yet then save it
             if score > best_score:
+                best_score = score
                 best = {
                     'formation': self.formations[formation],
                     'score': score,
@@ -68,7 +68,7 @@ class Lineup:
         print('Starting 11:')
         for p in self.lineup['lineup']:
             if p['web_name'] == self.lineup['captain']:
-                print('(c)', '-' , p['web_name'], p[self.param])
+                print('(c)', '-', p['web_name'], p[self.param])
             else:
                 print(p['web_name'], p[self.param], sep=' - ')
         print('\n')
@@ -77,4 +77,4 @@ class Lineup:
         for p in self.lineup['subs']:
             print(p['web_name'], p[self.param], sep=' - ')
         print('\n')
-        print('Starting 11\'s', self.param, '-', self.lineup['score'])
+        print('Starting 11\'s', self.param, '-', round(self.lineup['score'], 1))

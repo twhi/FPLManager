@@ -60,22 +60,18 @@ class ProcessData(FplData, PriceData):
         save_to_pickle(self.team_info, './data/team_info.pickle')
         save_to_pickle(self.team_ids, './data/team_ids.pickle')
 
-
     def give_current_team_indexes(self):
         for idx, player in enumerate(self.team_list):
             player['index'] = idx
 
-    def get_average_KPI(self):
-        KPI_list = []
-        for idx, player in enumerate(self.master_table):
-            KPI_list.append(player['KPI_n'])
-        return sum(KPI_list) / float(len(KPI_list))
-
     def reduce_data(self):
         # remove player if not expected to score any points next week
-        for idx, player in enumerate(self.master_table):
-            if float(player['ep_next']) <= 0.0:
-                del self.master_table[idx]
+        result = []
+        for idx, player in enumerate(reversed(self.master_table)):
+            if float(player['ep_next']) > 0.0:
+                result.append(player)
+                # print(player['web_name'], player['ep_next'], player['team_name'], sep=';')
+        self.master_table = result
 
 
     def min_max_values(self, attribute):
