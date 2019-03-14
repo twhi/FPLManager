@@ -55,7 +55,16 @@ class GetData:
             exit()
 
         web = WebStuff(self.username, self.password, self.acc_id)
-        web.log_into_fpl()
+
+
+        logged_in = False
+        while not logged_in:
+            try:
+                web.log_into_fpl()
+                logged_in = True
+                print('logged in successfully')
+            except:
+                print('Failed to log in, retrying...')
         return ProcessData(self.reduce, web_session=web)
 
     def get_data(self):

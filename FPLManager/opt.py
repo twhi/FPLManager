@@ -107,8 +107,8 @@ class Substitution:
         # remove existing players from master table
         # first make a copy of master table for output
         self.master_table_copy = self.master_table.copy()
-        for idx, p in enumerate(self.master_table):
-            for player in self.team_data:
+        for player in self.team_data:
+            for idx, p in enumerate(self.master_table):
                 if player['id'] == p['id']:
                     self.master_table.pop(idx)
 
@@ -391,15 +391,14 @@ class Wildcard:
         # the most correct order is Team > Position > Cost, not entirely sure why
         # might need to consult stack overflow
 
+        # team constraints
+        for team in self.team_constraints:
+            self.prob += sum(self.team_constraints[team][i] * self.decision[i] for i in self.data_length) <= 3
 
         # position constraints
         for pos in self.pos_constraints:
             self.prob += sum(self.pos_constraints[pos][i] * self.decision[i] for i in self.data_length) == \
                          self.max_players_per_position[pos]
-
-        # team constraints
-        for team in self.team_constraints:
-            self.prob += sum(self.team_constraints[team][i] * self.decision[i] for i in self.data_length) <= 3
 
         # price constraint
         self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= self.max_price  # cost
