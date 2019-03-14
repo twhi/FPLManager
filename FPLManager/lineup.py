@@ -62,19 +62,18 @@ class Lineup:
         return best
 
     def print_lineup(self):
-        print('##################')
         print('Optimal lineup -', self.lineup['formation'], '\n')
 
         print('Starting 11:')
         for p in self.lineup['lineup']:
+            print(p['position'], end=' ')
             if p['web_name'] == self.lineup['captain']:
-                print('(c)', '-', p['web_name'], p[self.param])
-            else:
-                print(p['web_name'], p[self.param], sep=' - ')
+                print('(c)', end=' ')
+            print(p['web_name'], p[self.param], sep=' - ')
         print('\n')
 
         print('Subs:')
         for p in self.lineup['subs']:
-            print(p['web_name'], p[self.param], sep=' - ')
+            print(p['position'], p['web_name'], ' - ', p[self.param])
         print('\n')
         print('Starting 11\'s', self.param, '-', round(self.lineup['score'], 1))

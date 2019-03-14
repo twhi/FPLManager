@@ -38,6 +38,7 @@ class Substitution:
 
         # construct optimisation parameters lists
         self.player_list = [p['web_name'] for p in self.master_table]
+        self.id_list = [p['id'] for p in self.master_table]
         self.price_list = [float(item) / 10 for item in [p['now_cost'] for p in self.master_table]]
         self.opt_list = [float(item) for item in [p[self.opt_parameter] for p in self.master_table]]
 
@@ -105,8 +106,6 @@ class Substitution:
 
     def remove_owned_players(self):
         # remove existing players from master table
-        # first make a copy of master table for output
-        self.master_table_copy = self.master_table.copy()
         for player in self.team_data:
             for idx, p in enumerate(self.master_table):
                 if player['id'] == p['id']:
@@ -114,6 +113,7 @@ class Substitution:
 
     def run_substitution_simulation(self):
         idx = 0
+        self.best_score = 0
         for subs in self.subs_to_make:
             idx += 1
             print(idx, 'out of', self.total_iterations, 'simulations complete',
@@ -129,57 +129,43 @@ class Substitution:
                 self.current_team.pop(sub)
 
             # run optimiser
-            self.subs = self.run_optimisation()
-            if 'Sterling' in self.subs:
-                brer = True
+            self.subs, self.sub_names = self.run_optimisation()
 
             # post process
             self.add_players_to_current_team()
             self.prepare_output()
             # self.print_opt_squad_data()
 
-    def print_opt_squad_data(self):
-        sum_opt = 0
-        sum_price = 0
-        for player in self.current_team:
-            print(player['web_name'], player['position'], player['team'],
-                  player[self.opt_parameter], sep=';')
-        print('######################')
-
-
-    def get_player_data_by_webname(self, n):
+    def get_player_data_by_id(self, n):
         # should pre allocate this for speed
         for player in self.master_table:
-            if player['web_name'] == n:
+            if player['id'] == n:
                 player.update({'sell_price': round(float(player['now_cost']), 1) / 10})
                 return player
 
     def add_players_to_current_team(self):
         new_cost = 0
-        for player in self.subs:
-            player_data = self.get_player_data_by_webname(player)
-            new_cost += round(float(player_data['now_cost']),1) / 10
+        for sub in self.subs:
+            player_data = self.get_player_data_by_id(sub)
+            new_cost += round(float(player_data['now_cost']), 1) / 10
             self.current_team.append(player_data)
 
     def prepare_output(self):
         # get substitutions
         players_out = [p['web_name'] for p in self.players_to_remove]
-        subs = [i + " > " + j for i, j in zip(players_out, self.subs)]
+        subs = [i + " > " + j for i, j in zip(players_out, self.sub_names)]
         new_team_score = score_team(self.current_team, self.opt_parameter)
         optimisation_data = {
             'subs': subs
         }
         optimisation_data.update(new_team_score)
         optimisation_data.update(self.old_team_score)
-
         self.output.append(optimisation_data)
 
-        total_cost = sum(float(p['sell_price']) for p in self.current_team) / 10
-        # for p in self.current_team:
-        #     print(p['web_name'], float(p['now_cost'])/10)
-
-        if round(total_cost, 1) > round((self.account_data['bank'] + self.account_data['total_balance']), 1):
-            print('total balance exceeded')
+        if new_team_score[self.opt_parameter] > self.best_score:
+            self.best_score = new_team_score[self.opt_parameter]
+            self.best_team = self.current_team
+            self.best_subs = subs
 
     def get_subs(self):
         team_list = list(range(0, 15))
@@ -215,7 +201,9 @@ class Substitution:
         self.prob.solve()
 
         # extract selected players and return
-        return [self.player_list[i] for i in self.data_length if self.decision[i].varValue]
+        return [self.id_list[i] for i in self.data_length if self.decision[i].varValue], [self.player_list[i] for i in
+                                                                                          self.data_length if
+                                                                                          self.decision[i].varValue]
 
     def add_sub_constraints(self):
 
@@ -229,11 +217,15 @@ class Substitution:
         # team constraints
         team_id_list = [p['team'] for p in self.current_team]
         for team in self.team_constraints:
-            self.prob += sum(self.team_constraints[team][i] * self.decision[i] for i in self.data_length) + team_id_list.count(team) <= 3
+            self.prob += sum(
+                self.team_constraints[team][i] * self.decision[i] for i in self.data_length) + team_id_list.count(
+                team) <= 3
 
         # position constraints
         for pos in self.pos_constraints:
-            self.prob += sum(self.pos_constraints[pos][i] * self.decision[i] for i in self.data_length) == remove_positions.count(pos)
+            self.prob += sum(
+                self.pos_constraints[pos][i] * self.decision[i] for i in self.data_length) == remove_positions.count(
+                pos)
 
         # total cost constraint
         self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= new_budget
@@ -262,9 +254,10 @@ class Wildcard:
 
         # construct optimisation parameters lists
         self.player_list = [p['web_name'] for p in self.master_table]
+        self.id_list = [p['id'] for p in self.master_table]
         self.team_list = [p['team'] for p in self.master_table]
         self.master_team_list = [p['id'] for p in self.master_table]
-        self.price_list = [float(item)/10 for item in [p['now_cost'] for p in self.master_table]]
+        self.price_list = [float(item) / 10 for item in [p['now_cost'] for p in self.master_table]]
         self.opt_list = [float(item) for item in [p[self.opt_parameter] for p in self.master_table]]
 
         # calculate more parameters
@@ -276,10 +269,16 @@ class Wildcard:
         self.team_constraints = self.create_team_constraints()
 
         self.data_length = range(len(self.player_list))
-        self.squad = self.run_optimisation()
+        self.squad_ids = self.run_optimisation()
+        self.squad = self.lookup_team_by_id()
 
-        # post processing
-        self.print_opt_squad_data()
+    def lookup_team_by_id(self):
+        team_list = []
+        for id in self.squad_ids:
+            for p in self.master_table:
+                if p['id'] == id:
+                    team_list.append(p)
+        return team_list
 
     def create_pos_constraints(self):
         positions = ['G', 'D', 'M', 'F']
@@ -348,18 +347,6 @@ class Wildcard:
     def convert_str_list_to_float(lst):
         return [float(i) for i in lst]
 
-    def print_opt_squad_data(self):
-        sum_opt = 0
-        sum_price = 0
-        for player in self.squad:
-            player_data = self.lookup_player_by_web_name(player)
-            print(player_data['web_name'], player_data['position'], player_data['team'], '-',
-                  player_data[self.opt_parameter], sep=';')
-            sum_opt += float(player_data[self.opt_parameter])
-            sum_price += float(player_data['now_cost']) / 10
-        print('\nTotal team cost - £', round(sum_price, 2))
-        print('Total team', self.opt_parameter, '-', round(sum_opt, 2))
-
     def lookup_player_by_web_name(self, web_name):
         for p in self.master_table:
             if p['web_name'] == web_name:
@@ -383,13 +370,9 @@ class Wildcard:
         self.prob.solve()
 
         # extract selected players and return
-        return [self.player_list[i] for i in self.data_length if self.decision[i].varValue]
+        return [self.id_list[i] for i in self.data_length if self.decision[i].varValue]
 
     def add_wildcard_constraints(self):
-
-        # for some reason, the order in which the constraints are added,
-        # the most correct order is Team > Position > Cost, not entirely sure why
-        # might need to consult stack overflow
 
         # team constraints
         for team in self.team_constraints:
