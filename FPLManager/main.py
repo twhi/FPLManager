@@ -8,18 +8,20 @@ username = ''
 password = ''
 acc_id = 1255473
 
-processed_data = GetData(username, password, acc_id, reduce=True, refresh=False).data
+processed_data = GetData(username, password, acc_id, reduce=True, refresh=True).data
 
+wc = Wildcard('KPI', processed_data, optimal_team=False)
+print('Wildcard simulation complete')
+print('Best team/formation is as follows:')
+lineup = Lineup(wc.squad, param='ep_next').print_lineup()
 
-for p in processed_data.master_table:
-    print(p['web_name'], p['KPI'], p['position'], sep=';')
+# sub = Substitution('KPI', processed_data, n_subs=1, optimal_team=False)
+# print('\n###########################')
+# print('\nSub simulation complete. Subs made:')
+# for sub in sub.best_subs:
+#     print(sub)
+# print('\nBest team/formation is as follows:')
+# lineup = Lineup(sub.best_team, param='ep_next').print_lineup()
 
-# wc = Wildcard('price_change', processed_data, optimal_team=False)
-# sub = Substitution('ep_next', processed_data, n_subs=4, optimal_team=False)
-# lineup = Lineup(processed_data.team_list, param='ep_next').print_lineup()
-
-# todo, identify players using name AND team in opt, this is causing incorrect players to be added to final squad
-
-# todo generate optimum lineup for optimal squad after running simulation
 ender = True
 

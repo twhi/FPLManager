@@ -42,13 +42,17 @@ class ProcessData(FplData, PriceData):
         self.get_player_position()
         self.team_list = self.get_team_list()
         self.account_data['total_balance'] = sum(p['sell_price'] for p in self.team_list) + self.account_data['bank']
+        self.add_selling_price()
 
-        self.give_current_team_indexes()
+
+    def add_selling_price(self):
+        for p in self.master_table:
+            if not 'sell_price' in p:
+                p['sell_price'] = float(p['now_cost'] / 10)
 
     def get_player_team_name(self):
         for p in self.master_table:
             p['team_name'] = self.team_ids[p['team']]
-        ender = True
 
     def cache_data(self):
         # could probably be refactored
@@ -60,10 +64,6 @@ class ProcessData(FplData, PriceData):
         save_to_pickle(self.team_info, './data/team_info.pickle')
         save_to_pickle(self.team_ids, './data/team_ids.pickle')
 
-    def give_current_team_indexes(self):
-        for idx, player in enumerate(self.team_list):
-            player['index'] = idx
-
     def reduce_data(self):
         # remove player if not expected to score any points next week
         result = []
@@ -72,26 +72,6 @@ class ProcessData(FplData, PriceData):
                 result.append(player)
                 # print(player['web_name'], player['ep_next'], player['team_name'], sep=';')
         self.master_table = result
-
-
-    def min_max_values(self, attribute):
-        val_list = []
-        for item in self.master_table:
-            try:
-                val_list.append(item[attribute])
-            except:
-                print('Attribute ' + attribute + ' not found for player ' + item['web_name'])
-                val_list.append(0)
-                item[attribute] = 0
-        val_list_float = [float(i) for i in val_list]
-        mm = {'min': float(min(val_list_float)), 'max': float(max(val_list_float))}
-        return mm
-
-    def calculate_normalised_attribute(self, attribute):
-        form_min_max = self.min_max_values(attribute)
-        for player in self.master_table:
-            player[attribute + '_n'] = round(
-                (float(player[attribute]) - form_min_max['min']) / (form_min_max['max'] - form_min_max['min']), 2)
 
     def get_player_position(self):
         for player in self.master_table:
