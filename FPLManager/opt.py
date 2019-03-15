@@ -1,6 +1,7 @@
 from pulp import LpMinimize, LpMaximize, LpProblem, LpVariable, LpInteger
 import itertools
 import csv
+from time import gmtime, strftime
 
 
 def score_team(t, opt):
@@ -87,12 +88,32 @@ class Substitution:
             outlist[t] = list_result
         return outlist
 
+    def create_constraint_switches_from_master(self, lookup, attr):
+        '''
+        Creates a dictionary of 'switches' which can be used to generate constraints in optimisation problems.
+        This is fed with data from master_table.
+        :param lookup: a list of values to lookup in master_table i.e. ['G', 'D', 'M', 'F']
+        :param attr: the attribute in master_table to look for the lookup values i.e. 'position'
+        :return: A dictionary of lists, where each list corresponds to a value in lookup
+        '''
+        outlist = {}
+        for d in lookup:
+            list_result = []
+            for p in self.master_table:
+                if p[attr] == d:
+                    list_result.append(1)
+                else:
+                    list_result.append(0)
+            outlist[d] = list_result
+        return outlist
+
     def output_data(self):
         # output data
         output = sorted(self.output, key=lambda k: float(k[self.opt_parameter]), reverse=True)
         self.results = output
         keys = output[0].keys()
-        with open('./output_data/substitution_sim.csv', 'w', newline='') as output_file:
+        fname = self.opt_parameter + '_' + str(self.n_subs) + '_' + strftime("%H%M%S", gmtime())
+        with open('./output_data/' + fname + '.csv', 'w', newline='') as output_file:
             dict_writer = csv.DictWriter(output_file, keys)
             dict_writer.writeheader()
             dict_writer.writerows(output)
@@ -306,6 +327,25 @@ class Wildcard:
                 else:
                     list_result.append(0)
             outlist[t] = list_result
+        return outlist
+
+    def create_constraint_switches_from_master(self, lookup, attr):
+        '''
+        Creates a dictionary of 'switches' which can be used to generate constraints in optimisation problems.
+        This is fed with data from master_table.
+        :param lookup: a list of values to lookup in master_table i.e. ['G', 'D', 'M', 'F']
+        :param attr: the attribute in master_table to look for the lookup values i.e. 'position'
+        :return: A dictionary of lists, where each list corresponds to a value in lookup
+        '''
+        outlist = {}
+        for d in lookup:
+            list_result = []
+            for p in self.master_table:
+                if p[attr] == d:
+                    list_result.append(1)
+                else:
+                    list_result.append(0)
+            outlist[d] = list_result
         return outlist
 
     def create_team_list(self, team):

@@ -5,7 +5,7 @@ from selenium.webdriver.chrome.options import Options
 
 
 class WebStuff:
-    def __init__(self, username, password, i):
+    def __init__(self, username, password):
         print('Firing up Selenium browser and requests session...')
 
         self.login_status = None
@@ -14,7 +14,6 @@ class WebStuff:
         self.session = requests.Session()
         self.username = username
         self.password = password
-        self.acc_id = i
         self.payload = self.construct_fpl_session_payload()
 
         # do selenium stuff
@@ -35,7 +34,6 @@ class WebStuff:
     def log_into_fpl(self):
         login_url = 'https://users.premierleague.com/accounts/login/'
         self.login_status = self.session.post(login_url, data=self.payload)
-        print('Successfully logged in')
 
 
     def log_out_of_fpl(self):

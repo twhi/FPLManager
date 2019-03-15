@@ -1,30 +1,21 @@
 import os.path
-import pickle
 import time
+import hashlib
 
 from FPLManager.process import ProcessData
 from FPLManager.web_stuff import WebStuff
+from FPLManager.caching import Caching
 
 
-class GetData:
-    def __init__(self, u, p, i, reduce, refresh):
+class GetData(Caching):
+
+    def __init__(self, u, p, reduce, refresh):
         self.username = u
+        self.username_hash = hashlib.md5(self.username.encode('utf-8')).hexdigest()
         self.password = p
-        self.acc_id = i
         self.reduce = reduce
         self.refresh = refresh
         self.data = self.get_data()
-
-    @staticmethod
-    def save_to_pickle(variable, filename):
-        with open(filename, 'wb') as handle:
-            pickle.dump(variable, handle)
-
-    @staticmethod
-    def open_pickle(path_to_file):
-        with open(path_to_file, 'rb') as handle:
-            f = pickle.load(handle)
-        return f
 
     @staticmethod
     def older_than_one_hour(file):
@@ -36,46 +27,46 @@ class GetData:
             return False
 
     def use_cached_data(self):
-        data = {
-            'account_data': self.open_pickle('./data/account_data.pickle'),
-            'master_table': self.open_pickle('./data/master_table.pickle'),
-            'team_list': self.open_pickle('./data/team_list.pickle'),
-            'team_info': self.open_pickle('./data/team_info.pickle'),
-            'player_price_data': self.open_pickle('./data/player_price_data.pickle'),
-            'player_stats_data': self.open_pickle('./data/player_stats_data.pickle'),
-            'team_ids': self.open_pickle('./data/team_ids.pickle')
-        }
-
+        Caching.__init__(self)
+        data = self.get_cached_data(self.username_hash)
         return ProcessData(self.reduce, **data)
 
-    def get_data_from_web(self):
+    def user_data_exists(self):
+        file_list_raw = os.listdir('./data')
+        file_list = [os.path.splitext(file)[0] for file in file_list_raw]
+        if self.username_hash in file_list:
+            return True
+        return False
 
+    def get_data_from_web(self):
+        # check if credentials were supplied
         if not self.username or not self.password:
             print('\nProcess failed. Incomplete credentials supplied.')
             exit()
 
-        web = WebStuff(self.username, self.password, self.acc_id)
+        # initialise selenium and requests session
+        web = WebStuff(self.username, self.password)
 
-
+        # attempt to log in, don't give up until logged in (stupid work network...)
         logged_in = False
         while not logged_in:
             try:
                 web.log_into_fpl()
                 logged_in = True
-                print('logged in successfully')
+                print('Logged in successfully!')
             except:
                 print('Failed to log in, retrying...')
-        return ProcessData(self.reduce, web_session=web)
+        return ProcessData(self.reduce, self.username_hash, web_session=web)
 
     def get_data(self):
         try:
-            need_new_data = self.older_than_one_hour('./data/account_data.pickle')
+            need_new_data = self.older_than_one_hour('./data/' + self.username_hash + '.pickle')
         except:
             # no data exists
             return self.get_data_from_web()
 
         # data exists
-        if need_new_data or self.refresh:
+        if need_new_data or self.refresh or not self.user_data_exists():
             return self.get_data_from_web()
         else:
             return self.use_cached_data()
