@@ -7,7 +7,6 @@ class FplData:
         print('Getting FPL data...')
         self.login_status = session.login_status
         self.session = session.session
-        self.acc_id = session.acc_id
         self.account_data = self.get_unique_account_data()
         self.team_info = self.get_team_list_data()
         self.master_table = self.get_master_table()

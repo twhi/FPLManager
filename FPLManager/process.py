@@ -1,27 +1,23 @@
 import json
 import requests
+
+from FPLManager.caching import Caching
 from FPLManager.fpl_data import FplData
 from FPLManager.price_data import PriceData
-import pickle
 
+class ProcessData(FplData, PriceData, Caching):
 
-def save_to_pickle(variable, filename):
-    with open(filename, 'wb') as handle:
-        pickle.dump(variable, handle)
-
-
-class ProcessData(FplData, PriceData):
-
-    def __init__(self, reduce_data, **kwargs):
+    def __init__(self, reduce_data, username_hash, **kwargs):
 
         if len(kwargs) == 1:
+            self.username_hash = username_hash
             web = kwargs.get('web_session')
             self.session = web.session
             self.driver = web.driver
             FplData.__init__(self, web)
             PriceData.__init__(self, web)
             self.process_data()
-            self.cache_data()
+            self.c_data()
         else:
             self.session = requests.Session()
             for (k, v) in kwargs.items():
@@ -44,7 +40,6 @@ class ProcessData(FplData, PriceData):
         self.account_data['total_balance'] = sum(p['sell_price'] for p in self.team_list) + self.account_data['bank']
         self.add_selling_price()
 
-
     def add_selling_price(self):
         for p in self.master_table:
             if not 'sell_price' in p:
@@ -54,15 +49,9 @@ class ProcessData(FplData, PriceData):
         for p in self.master_table:
             p['team_name'] = self.team_ids[p['team']]
 
-    def cache_data(self):
-        # could probably be refactored
-        save_to_pickle(self.account_data, './data/account_data.pickle')
-        save_to_pickle(self.master_table, './data/master_table.pickle')
-        save_to_pickle(self.player_price_data, './data/player_price_data.pickle')
-        save_to_pickle(self.player_stats_data, './data/player_stats_data.pickle')
-        save_to_pickle(self.team_list, './data/team_list.pickle')
-        save_to_pickle(self.team_info, './data/team_info.pickle')
-        save_to_pickle(self.team_ids, './data/team_ids.pickle')
+    def c_data(self):
+        Caching.__init__(self)
+        self.cache_data(self.username_hash)
 
     def reduce_data(self):
         # remove player if not expected to score any points next week
