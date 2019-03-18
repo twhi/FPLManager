@@ -41,7 +41,10 @@ class Substitution:
         self.player_list = [p['web_name'] for p in self.master_table]
         self.id_list = [p['id'] for p in self.master_table]
         self.price_list = [float(item) / 10 for item in [p['now_cost'] for p in self.master_table]]
-        self.opt_list = [float(item) for item in [p[self.opt_parameter] for p in self.master_table]]
+
+        # use the number of games in the next gameweek to weight the optimisation parameter
+        # need to be VERY careful if this is a good idea or not
+        self.opt_list = [float(p[self.opt_parameter]) * p['next_gameweek'] for p in self.master_table]
 
         self.score_current_team()
 
@@ -278,8 +281,11 @@ class Wildcard:
         self.id_list = [p['id'] for p in self.master_table]
         self.team_list = [p['team'] for p in self.master_table]
         self.master_team_list = [p['id'] for p in self.master_table]
-        self.price_list = [float(item) / 10 for item in [p['now_cost'] for p in self.master_table]]
-        self.opt_list = [float(item) for item in [p[self.opt_parameter] for p in self.master_table]]
+        self.price_list = [float(p['now_cost']) / 10 for p in self.master_table]
+
+        # use the number of games in the next gameweek to weight the optimisation parameter
+        # need to be VERY careful if this is a good idea or not
+        self.opt_list = [float(p[self.opt_parameter]) * p['next_gameweek'] for p in self.master_table]
 
         # calculate more parameters
         self.define_opt_type()
@@ -368,20 +374,6 @@ class Wildcard:
         else:
             self.opt_max_min = LpMaximize
 
-    def create_position_list(self, position):
-        list_result = []
-        for p in self.master_table:
-            if p['position'] == position:
-                list_result.append(1)
-            else:
-                list_result.append(0)
-        return list_result
-
-    def construct_list(self, attribute):
-        l = []
-        for player in self.master_table:
-            l.append(player[attribute])
-        return l
 
     @staticmethod
     def convert_str_list_to_float(lst):

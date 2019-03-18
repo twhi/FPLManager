@@ -129,15 +129,28 @@ class ProcessData(FplData, PriceData, Caching):
         # for each team get their average 3 game difficulty using each player's ID
         player_url_template = 'https://fantasy.premierleague.com/drf/element-summary/[PLAYER_ID]'
         difficulty_list = []
+        gw_type_list = []
         for player_id in player_list:
             player_url = player_url_template.replace('[PLAYER_ID]', str(player_id))
             fixtures_data = json.loads(self.session.get(player_url).text)['fixtures']
             difficulty_list.append(self._get_n_game_average_difficulty(3, fixtures_data))
+            gw_type_list.append(self.get_gw_type(self.account_data['next_event'], fixtures_data))
         game_difficulties = dict(zip(team_list, difficulty_list))
+        game_types = dict(zip(team_list, gw_type_list))
+
 
         # append the difficulty to the master table for each player
         for player in self.master_table:
             player['3_game_difficulty'] = game_difficulties[player['team_code']]
+            player['next_gameweek'] = game_types[player['team_code']]
+
+    @staticmethod
+    def get_gw_type(next_gw, fixtures):
+        count_gw = sum(1 for f in fixtures if f['event'] == next_gw)
+        if count_gw <= 2:
+            return count_gw
+        else:
+            raise Exception('Number of games in a week shouldn\'t exceed 2. I counted {0}'.format(count_gw))
 
     @staticmethod
     def _get_n_game_average_difficulty(number_games, fixtures_data):
