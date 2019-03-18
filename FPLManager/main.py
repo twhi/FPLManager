@@ -21,7 +21,7 @@ def wildcard_sim(opt, ot):
     wc = Wildcard(opt, processed_data, optimal_team=ot)
     print('Wildcard simulation complete')
     print('Best team/formation is as follows:')
-    Lineup(wc.squad, param='ep_next').print_lineup()
+    Lineup(wc.squad, param=opt).print_lineup()
 
 def simulation_sim(opt, n, ot):
     sub = Substitution(opt, processed_data, n_subs=n, optimal_team=ot)
@@ -32,13 +32,13 @@ def simulation_sim(opt, n, ot):
     print('\nBest team/formation is as follows:')
     Lineup(sub.best_team, param=opt).print_lineup()
 
-opt_param = 'KPI'
-num_subs = 2
+opt_param = 'ep_next'
+num_subs = 3
 optimal = False
 creds = get_credentials()
 if creds:
     processed_data = GetData(creds['user'], creds['pass'], reduce=True, refresh=False).data
-    wildcard_sim(opt_param, optimal)
+    # wildcard_sim(opt_param, optimal)
     simulation_sim(opt_param, num_subs, optimal)
 
 ender = True

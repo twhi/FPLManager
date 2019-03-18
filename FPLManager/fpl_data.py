@@ -11,6 +11,7 @@ class FplData:
         self.team_info = self.get_team_list_data()
         self.master_table = self.get_master_table()
         self.team_ids = self.get_team_ids()
+        self.account_data['next_event'] = self.next_event
 
     def get_unique_account_data(self):
         data = json.loads(self.session.get('https://fantasy.premierleague.com/drf/bootstrap-dynamic').text)
@@ -27,8 +28,10 @@ class FplData:
         return json.loads(team_data_s)['picks']
 
     def get_team_ids(self):
-        team_ids_s = self.session.get('https://fantasy.premierleague.com/drf/bootstrap-static').text
-        teams_data = json.loads(team_ids_s)['teams']
+        bs_static_s = self.session.get('https://fantasy.premierleague.com/drf/bootstrap-static').text
+        bs_static = json.loads(bs_static_s)
+        self.next_event = bs_static['next-event']
+        teams_data = bs_static['teams']
         team_ids = {}
         for t in teams_data:
             team_ids[t['id']] = t['name']
