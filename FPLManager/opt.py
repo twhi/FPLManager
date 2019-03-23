@@ -8,8 +8,7 @@ def score_team(t, opt):
     return {
         'team_form': sum(float(p['form']) for p in t),
         'team_price_change': sum(float(p['price_change']) for p in t),
-        'team_3_game_difficulty': sum(float(p['3_game_difficulty']) for p in t),
-        'team_ict_index': sum(float(p['ict_index']) for p in t),
+        'num_games': sum(float(p['next_gameweek']) for p in t),
         'team_KPI': sum(float(p['KPI']) for p in t),
         opt: sum(float(p[opt]) for p in t),
         'total_cost': sum(float(p['sell_price']) for p in t)
@@ -17,6 +16,7 @@ def score_team(t, opt):
 
 
 class Substitution:
+
     def __init__(self, opt_parameter, data, optimal_team=False, n_subs=2):
         # set instance variables
         self.prob = None
@@ -49,8 +49,10 @@ class Substitution:
         self.score_current_team()
 
         # create constraint containers
-        self.pos_constraints = self.create_pos_constraints()
-        self.team_constraints = self.create_team_constraints()
+        pos_lookup = ['G', 'D', 'M', 'F']
+        self.pos_constraints = self.create_constraint_switches_from_master(pos_lookup, 'position')
+        team_lookup = list(range(1, 21))
+        self.team_constraints = self.create_constraint_switches_from_master(team_lookup, 'team')
 
         # sub combinations
         self.subs_to_make = self.get_subs()
@@ -62,34 +64,6 @@ class Substitution:
         self.run_substitution_simulation()
 
         self.output_data()
-
-    def create_pos_constraints(self):
-        positions = ['G', 'D', 'M', 'F']
-        outlist = {}
-
-        for pos in positions:
-            list_result = []
-            for p in self.master_table:
-                if p['position'] == pos:
-                    list_result.append(1)
-                else:
-                    list_result.append(0)
-            outlist[pos] = list_result
-        return outlist
-
-    def create_team_constraints(self):
-        teams = list(range(1, 21))
-        outlist = {}
-
-        for t in teams:
-            list_result = []
-            for p in self.master_table:
-                if int(p['team']) == t:
-                    list_result.append(1)
-                else:
-                    list_result.append(0)
-            outlist[t] = list_result
-        return outlist
 
     def create_constraint_switches_from_master(self, lookup, attr):
         '''
@@ -113,7 +87,6 @@ class Substitution:
     def output_data(self):
         # output data
         output = sorted(self.output, key=lambda k: float(k[self.opt_parameter]), reverse=True)
-        self.results = output
         keys = output[0].keys()
         fname = self.opt_parameter + '_' + str(self.n_subs) + '_' + strftime("%H%M%S", gmtime())
         with open('./output_data/' + fname + '.csv', 'w', newline='') as output_file:
