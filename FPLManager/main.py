@@ -33,7 +33,7 @@ def simulation_sim(opt, n, ot):
     Lineup(sub.best_team, param=opt).print_lineup()
 
 opt_param = 'ep_next'
-num_subs = 3
+num_subs = 2
 optimal = False
 creds = get_credentials()
 if creds:
