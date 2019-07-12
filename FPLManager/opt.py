@@ -44,7 +44,8 @@ class Substitution:
 
         # use the number of games in the next gameweek to weight the optimisation parameter
         # need to be VERY careful if this is a good idea or not
-        self.opt_list = [float(p[self.opt_parameter]) * p['next_gameweek'] for p in self.master_table]
+        # self.opt_list = [float(p[self.opt_parameter]) * p['next_gameweek'] for p in self.master_table]
+        self.opt_list = [float(p[self.opt_parameter])for p in self.master_table]
 
         self.score_current_team()
 
@@ -258,7 +259,8 @@ class Wildcard:
 
         # use the number of games in the next gameweek to weight the optimisation parameter
         # need to be VERY careful if this is a good idea or not
-        self.opt_list = [float(p[self.opt_parameter]) * p['next_gameweek'] for p in self.master_table]
+        # self.opt_list = [float(p[self.opt_parameter]) * p['next_gameweek'] for p in self.master_table]
+        self.opt_list = [float(p[self.opt_parameter]) for p in self.master_table]
 
         # calculate more parameters
         self.define_opt_type()
