@@ -127,13 +127,13 @@ class ProcessData(FplData, PriceData, Caching):
 
     def calculate_3_game_difficulty(self, player_list, team_list):
         # for each team get their average 3 game difficulty using each player's ID
-        player_url_template = 'https://fantasy.premierleague.com/drf/element-summary/[PLAYER_ID]'
+        player_url_template = 'https://fantasy.premierleague.com/api/element-summary/[PLAYER_ID]/'
         difficulty_list = []
         gw_type_list = []
         for player_id in player_list:
             player_url = player_url_template.replace('[PLAYER_ID]', str(player_id))
             fixtures_data = json.loads(self.session.get(player_url).text)['fixtures']
-            difficulty_list.append(self._get_n_game_average_difficulty(3, fixtures_data))
+            difficulty_list.append(self._get_n_game_average_difficulty(1, fixtures_data))
             gw_type_list.append(self.get_gw_type(self.account_data['next_event'], fixtures_data))
         game_difficulties = dict(zip(team_list, difficulty_list))
         game_types = dict(zip(team_list, gw_type_list))

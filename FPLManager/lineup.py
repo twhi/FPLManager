@@ -46,6 +46,9 @@ class Lineup:
             # calculate the score
             score = sum(float(p[self.param]) for p in lineup)
 
+            # calculate the price
+            price = sum(float(p['sell_price']) for p in lineup) + sum(float(p['sell_price']) for p in subs)
+
             # find max value i.e. captain choice
             cap = max(lineup, key=lambda x: float(x[self.param]))
 
@@ -57,7 +60,8 @@ class Lineup:
                     'score': score,
                     'lineup': lineup,
                     'captain': cap['web_name'],
-                    'subs': subs
+                    'subs': subs,
+                    'price': price
                 }
         return best
 
@@ -66,14 +70,15 @@ class Lineup:
 
         print('Starting 11:')
         for p in self.lineup['lineup']:
-            print(p['position'], end=' ')
+            print(p['position'], end=';')
             if p['web_name'] == self.lineup['captain']:
                 print('(c)', end=' ')
-            print(p['web_name'], p[self.param], sep=' - ')
+            print(p['web_name'], p[self.param], p['team_name'],p['next_gameweek'], sep=';')
         print('\n')
 
         print('Subs:')
         for p in self.lineup['subs']:
-            print(p['position'], p['web_name'], ' - ', p[self.param])
+            print(p['position'], p['web_name'], p[self.param], p['team_name'], sep=';')
         print('\n')
         print('Starting 11\'s', self.param, '-', round(self.lineup['score'], 1))
+        print('Team cost £', self.lineup['price'])

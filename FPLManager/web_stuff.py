@@ -22,9 +22,9 @@ class WebStuff:
     def construct_fpl_session_payload(self):
         url_home = 'https://fantasy.premierleague.com/'
         self.session.get(url_home)
-        csrftoken = self.session.cookies['csrftoken']
+        # csrftoken = self.session.cookies['csrftoken']
         return {
-            'csrfmiddlewaretoken': csrftoken,
+            # 'csrfmiddlewaretoken': csrftoken,
             'login': self.username,
             'password': self.password,
             'app': 'plfpl-web',
@@ -34,6 +34,7 @@ class WebStuff:
     def log_into_fpl(self):
         login_url = 'https://users.premierleague.com/accounts/login/'
         self.login_status = self.session.post(login_url, data=self.payload)
+        print(self.login_status)
 
 
     def log_out_of_fpl(self):
