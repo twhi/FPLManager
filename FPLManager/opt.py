@@ -44,8 +44,8 @@ class Substitution:
 
         # use the number of games in the next gameweek to weight the optimisation parameter
         # need to be VERY careful if this is a good idea or not
-        # self.opt_list = [float(p[self.opt_parameter]) * p['next_gameweek'] for p in self.master_table]
-        self.opt_list = [float(p[self.opt_parameter])for p in self.master_table]
+        self.opt_list = [float(p[self.opt_parameter]) * p['next_gameweek'] for p in self.master_table]
+        # self.opt_list = [float(p[self.opt_parameter])for p in self.master_table]
 
         self.score_current_team()
 
@@ -207,7 +207,7 @@ class Substitution:
 
         # calculate new budget
         player_out_cost = sum(float(p['sell_price']) for p in self.players_to_remove)
-        new_budget = self.account_data['bank'] + player_out_cost
+        new_budget = (self.account_data['bank'] / 10) + player_out_cost
 
         # calculate positions being removed
         remove_positions = [p['position'] for p in self.players_to_remove]
@@ -259,8 +259,8 @@ class Wildcard:
 
         # use the number of games in the next gameweek to weight the optimisation parameter
         # need to be VERY careful if this is a good idea or not
-        # self.opt_list = [float(p[self.opt_parameter]) * p['next_gameweek'] for p in self.master_table]
-        self.opt_list = [float(p[self.opt_parameter]) for p in self.master_table]
+        self.opt_list = [float(p[self.opt_parameter]) * p['next_gameweek'] for p in self.master_table]
+        # self.opt_list = [float(p[self.opt_parameter]) for p in self.master_table]
 
         # calculate more parameters
         self.define_opt_type()
@@ -340,7 +340,7 @@ class Wildcard:
 
     def define_budget(self):
         if not self.optimal_team:
-            self.max_price = self.account_data['bank'] + self.account_data['total_balance']
+            self.max_price = (self.account_data['bank'] / 10) + self.account_data['total_balance']
 
     def define_opt_type(self):
         params_to_min = ['3_game_difficulty', '3_game_difficulty_n', 'price']

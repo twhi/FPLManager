@@ -37,7 +37,7 @@ class ProcessData(FplData, PriceData, Caching):
         self.get_stats_data()
         self.get_player_position()
         self.team_list = self.get_team_list()
-        self.account_data['total_balance'] = sum(p['sell_price'] for p in self.team_list) + self.account_data['bank']
+        self.account_data['total_balance'] = sum(p['sell_price'] for p in self.team_list) + (self.account_data['bank']/10)
         self.add_selling_price()
 
     def add_selling_price(self):
@@ -88,12 +88,13 @@ class ProcessData(FplData, PriceData, Caching):
             player_found = False
             for player in self.player_price_data:
                 if player[1] == p['web_name'] and player[2] == p['team_name']:
-                    p['price_change'] = player[14]
+                    # p['price_change'] = player[14]
                     player_found = True
+                    p['price_change'] = float(player[12]) * abs(float(player[14]))
                     break
             # if the player isn't found then give them terrible attributes so that they're not accidentally used
             if not player_found:
-                p['price_change'] = -3
+                p['price_change'] = -300
 
     def get_stats_data(self):
         for p in self.master_table:
@@ -146,7 +147,7 @@ class ProcessData(FplData, PriceData, Caching):
 
     @staticmethod
     def get_gw_type(next_gw, fixtures):
-        count_gw = sum(1 for f in fixtures if f['event'] == next_gw)
+        count_gw = sum(1 for f in fixtures if f['event'] == next_gw['id'])
         if count_gw <= 2:
             return count_gw
         else:
