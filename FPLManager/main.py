@@ -36,14 +36,14 @@ def simulation_sim(opt, n, ot):
     Lineup(sub.best_team, param=opt).print_lineup()
 
 
-opt_param = 'points_per_game'
-num_subs = 2
+opt_param = 'ep_next'
+num_subs = 1
 optimal = False
 creds = get_credentials()
 if creds:
-    processed_data = GetData(creds['user'], creds['pass'], reduce=False, refresh=True).data
-    wildcard_sim(opt_param, optimal)
-    # simulation_sim(opt_param, num_subs, optimal)
+    processed_data = GetData(creds['user'], creds['pass'], reduce=True, refresh=False).data
+    # wildcard_sim(opt_param, optimal)
+    simulation_sim(opt_param, num_subs, optimal)
     # Lineup(processed_data.team_list, param=opt_param).print_lineup()
 
 ender = True

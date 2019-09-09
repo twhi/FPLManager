@@ -39,7 +39,7 @@ class FplData:
         return None
 
     def get_team_ids(self):
-        bs_static_s = self.session.get('https://fantasy.premierleague.com/api/bootstrap-static').text
+        bs_static_s = self.session.get('https://fantasy.premierleague.com/api/bootstrap-static/').text
         bs_static = json.loads(bs_static_s)
         self.next_event = self.get_next_event(bs_static)
         teams_data = bs_static['teams']
@@ -49,6 +49,6 @@ class FplData:
         return team_ids
 
     def get_master_table(self):
-        master_table_s = self.session.get('https://fantasy.premierleague.com/api/bootstrap-static').text
+        master_table_s = self.session.get('https://fantasy.premierleague.com/api/bootstrap-static/').text
         master_table = json.loads(master_table_s)
         return master_table['elements']
