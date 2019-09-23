@@ -27,13 +27,22 @@ class Substitution:
         self.optimal_team = optimal_team
         self.max_price = 999
         self.output = []
+        self.max_players_per_position = {
+            'G': 2,
+            'D': 5,
+            'M': 5,
+            'F': 3
+        }
 
         # split data parameters into data type
         self.master_table = data.master_table
         self.team_data = data.team_list
         self.account_data = data.account_data
 
-        self.remove_owned_players()
+        self.mark_owned_players()
+        self.in_team_constraints = [p['in_team'] for p in self.master_table]
+        # self.remove_owned_players()
+
         self.define_opt_type()
         self.define_budget()
 
@@ -62,9 +71,25 @@ class Substitution:
         self.data_length = range(len(self.player_list))
 
         # run sub simulation
-        self.run_substitution_simulation()
+        # self.run_substitution_simulation()
+        # self.output_data()
 
-        self.output_data()
+
+        self.squad_ids = self.run_optimisation_new()
+        self.squad = self.lookup_team_by_id()
+        for p in self.squad:
+            print(p['position'], p['web_name'], '-', p['ep_next'])
+        print('ep next -', sum(float(p['ep_next']) for p in self.squad))
+        print('team cost -', sum(float(p['sell_price']) for p in self.squad))
+        tester = True
+
+    def lookup_team_by_id(self):
+        team_list = []
+        for id in self.squad_ids:
+            for p in self.master_table:
+                if p['id'] == id:
+                    team_list.append(p)
+        return team_list
 
     def create_constraint_switches_from_master(self, lookup, attr):
         '''
@@ -108,6 +133,16 @@ class Substitution:
             for idx, p in enumerate(self.master_table):
                 if player['id'] == p['id']:
                     self.master_table.pop(idx)
+
+    def mark_owned_players(self):
+        # remove existing players from master table
+        for p in self.master_table:
+            p['in_team'] = 0
+
+        for player in self.team_data:
+            for idx, p in enumerate(self.master_table):
+                if player['id'] == p['id']:
+                    p['in_team'] = 1
 
     def run_substitution_simulation(self):
         idx = 0
@@ -172,7 +207,7 @@ class Substitution:
 
     def define_budget(self):
         if not self.optimal_team:
-            self.max_price = self.account_data['bank'] + self.account_data['total_balance']
+            self.max_price = self.account_data['bank'] / 10 + self.account_data['total_balance']
 
     def define_opt_type(self):
         params_to_min = ['3_game_difficulty', '3_game_difficulty_n', 'price']
@@ -180,6 +215,50 @@ class Substitution:
             self.opt_max_min = LpMinimize
         else:
             self.opt_max_min = LpMaximize
+
+    def run_optimisation_new(self):
+
+        # Declare problem instance, maximization problem
+        self.prob = LpProblem("Squad", self.opt_max_min)
+
+        # Declare decision variable x, which is 1 if a player is part of the squad and 0 else
+        self.decision = LpVariable.matrix("decision", list(self.data_length), 0, 1, LpInteger)
+
+        # Objective function -> Maximize specified optimisation parameter
+        self.prob += sum(self.opt_list[i] * self.decision[i] for i in self.data_length)
+
+        # Constraint definition
+        self.add_sub_constraints_new()
+
+        # solve problem
+        self.prob.solve()
+
+        # extract selected players and return
+        return [self.id_list[i] for i in self.data_length if self.decision[i].varValue]
+
+    def add_sub_constraints_new(self):
+
+        # idea to improve the substitution simulation:
+        # create a full player list with 'switches' only on players previously owned
+        # i.e. 1 on players owned and 0 on players not owned
+        # then add a constraint of the following form:
+        # owned_player_switches * decision == (15 - n_subs)
+
+        # team constraints
+        for team in self.team_constraints:
+            self.prob += sum(self.team_constraints[team][i] * self.decision[i] for i in self.data_length) <= 3
+
+        # position constraints
+        for pos in self.pos_constraints:
+            self.prob += sum(self.pos_constraints[pos][i] * self.decision[i] for i in self.data_length) == \
+                         self.max_players_per_position[pos]
+
+        # price constraint
+        self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= self.max_price  # cost
+
+        # players in original squad constraint
+        self.prob += sum(self.in_team_constraints[i] * self.decision[i] for i in self.data_length) == 15 - self.n_subs
+
 
     def run_optimisation(self):
 
@@ -206,10 +285,10 @@ class Substitution:
     def add_sub_constraints(self):
 
         # idea to improve the substitution simulation:
-            # create a full player list with 'switches' only on players previously owned
-            # i.e. 1 on players owned and 0 on players not owned
-            # then add a constraint of the following form:
-                # owned_player_switches * decision == (15 - n_subs)
+        # create a full player list with 'switches' only on players previously owned
+        # i.e. 1 on players owned and 0 on players not owned
+        # then add a constraint of the following form:
+        # owned_player_switches * decision == (15 - n_subs)
 
         # calculate new budget
         player_out_cost = sum(float(p['sell_price']) for p in self.players_to_remove)
@@ -354,7 +433,6 @@ class Wildcard:
             self.opt_max_min = LpMinimize
         else:
             self.opt_max_min = LpMaximize
-
 
     @staticmethod
     def convert_str_list_to_float(lst):
