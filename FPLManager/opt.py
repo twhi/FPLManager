@@ -205,6 +205,12 @@ class Substitution:
 
     def add_sub_constraints(self):
 
+        # idea to improve the substitution simulation:
+            # create a full player list with 'switches' only on players previously owned
+            # i.e. 1 on players owned and 0 on players not owned
+            # then add a constraint of the following form:
+                # owned_player_switches * decision == (15 - n_subs)
+
         # calculate new budget
         player_out_cost = sum(float(p['sell_price']) for p in self.players_to_remove)
         new_budget = (self.account_data['bank'] / 10) + player_out_cost
