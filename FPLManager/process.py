@@ -131,19 +131,32 @@ class ProcessData(FplData, PriceData, Caching):
         player_url_template = 'https://fantasy.premierleague.com/api/element-summary/[PLAYER_ID]/'
         difficulty_list = []
         gw_type_list = []
+        playing_next_id = {}
         for player_id in player_list:
             player_url = player_url_template.replace('[PLAYER_ID]', str(player_id))
             fixtures_data = json.loads(self.session.get(player_url).text)['fixtures']
             difficulty_list.append(self._get_n_game_average_difficulty(1, fixtures_data))
             gw_type_list.append(self.get_gw_type(self.account_data['next_event'], fixtures_data))
+            h, a = self.get_next_opponents(self.account_data['next_event'], fixtures_data)
+            playing_next_id[h] = a
+            playing_next_id[a] = h
         game_difficulties = dict(zip(team_list, difficulty_list))
         game_types = dict(zip(team_list, gw_type_list))
 
 
         # append the difficulty to the master table for each player
         for player in self.master_table:
+            player['playing_next_id'] = playing_next_id[player['team']]
             player['3_game_difficulty'] = game_difficulties[player['team_code']]
             player['next_gameweek'] = game_types[player['team_code']]
+
+    @staticmethod
+    def get_next_opponents(next_gw, fixtures):
+        next_opponents = []
+        for f in fixtures:
+            if f['event'] == next_gw['id']:
+                return f['team_h'], f['team_a']
+
 
     @staticmethod
     def get_gw_type(next_gw, fixtures):

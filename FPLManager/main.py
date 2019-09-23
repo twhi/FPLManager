@@ -2,8 +2,8 @@ import csv
 
 from FPLManager.get_data import GetData
 from FPLManager.lineup import Lineup
-from FPLManager.opt import Wildcard
 from FPLManager.opt import Substitution
+from FPLManager.opt import Wildcard
 
 
 def get_credentials():
@@ -26,7 +26,7 @@ def wildcard_sim(opt, ot):
     Lineup(wc.squad, param=opt).print_lineup()
 
 
-def simulation_sim(opt, n, ot):
+def substitution_sim(opt, n, ot):
     sub = Substitution(opt, processed_data, n_subs=n, optimal_team=ot)
     print('\n###########################')
     print('\nSub simulation complete. Optimal subs:')
@@ -43,7 +43,10 @@ creds = get_credentials()
 if creds:
     processed_data = GetData(creds['user'], creds['pass'], reduce=True, refresh=False).data
     # wildcard_sim(opt_param, optimal)
-    simulation_sim(opt_param, num_subs, optimal)
-    # Lineup(processed_data.team_list, param=opt_param).print_lineup()
+    # substitution_sim(opt_param, num_subs, optimal)
+    Lineup(processed_data.team_list, param=opt_param).print_lineup()
+
+# for p in processed_data.master_table:
+#     print(p['web_name'], p['ep_next'], p['KPI'], p['transfers_in_event'], p['ict_index'], sep=';')
 
 ender = True
