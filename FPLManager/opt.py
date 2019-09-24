@@ -39,10 +39,6 @@ class Substitution:
         self.team_data = data.team_list
         self.account_data = data.account_data
 
-        self.mark_owned_players()
-        self.in_team_constraints = [p['in_team'] for p in self.master_table]
-        # self.remove_owned_players()
-
         self.define_opt_type()
         self.define_budget()
 
@@ -59,29 +55,28 @@ class Substitution:
         self.score_current_team()
 
         # create constraint containers
+        self.mark_owned_players()
+        self.in_team_constraints = [p['in_team'] for p in self.master_table]
+
         pos_lookup = ['G', 'D', 'M', 'F']
         self.pos_constraints = self.create_constraint_switches_from_master(pos_lookup, 'position')
         team_lookup = list(range(1, 21))
         self.team_constraints = self.create_constraint_switches_from_master(team_lookup, 'team')
 
-        # sub combinations
-        self.subs_to_make = self.get_subs()
-
         # get length of data
         self.data_length = range(len(self.player_list))
 
-        # run sub simulation
-        # self.run_substitution_simulation()
-        # self.output_data()
-
-
-        self.squad_ids = self.run_optimisation_new()
+        self.squad_ids = self.run_optimisation()
         self.squad = self.lookup_team_by_id()
-        for p in self.squad:
-            print(p['position'], p['web_name'], '-', p['ep_next'])
-        print('ep next -', sum(float(p['ep_next']) for p in self.squad))
-        print('team cost -', sum(float(p['sell_price']) for p in self.squad))
-        tester = True
+
+    def extract_subs(self):
+        existing_player_u = [i for i in self.team_data if i not in self.squad]
+        existing_player = sorted(existing_player_u, key=lambda k: k['position'], reverse=True)
+
+        sub_u = [i for i in self.squad if i not in self.team_data]
+        sub = sorted(sub_u, key=lambda k: k['position'], reverse=True)
+
+        return existing_player, sub
 
     def lookup_team_by_id(self):
         team_list = []
@@ -127,13 +122,6 @@ class Substitution:
         for key in self.ots:
             self.old_team_score['old_' + key] = self.ots[key]
 
-    def remove_owned_players(self):
-        # remove existing players from master table
-        for player in self.team_data:
-            for idx, p in enumerate(self.master_table):
-                if player['id'] == p['id']:
-                    self.master_table.pop(idx)
-
     def mark_owned_players(self):
         # remove existing players from master table
         for p in self.master_table:
@@ -144,66 +132,12 @@ class Substitution:
                 if player['id'] == p['id']:
                     p['in_team'] = 1
 
-    def run_substitution_simulation(self):
-        idx = 0
-        self.best_score = 0
-        for subs in self.subs_to_make:
-            idx += 1
-            print(idx, 'out of', self.total_iterations, 'simulations complete',
-                  round(100 * idx / self.total_iterations, 2), '%')
-
-            # create copy of current team
-            self.current_team = self.team_data.copy()
-
-            # remove selected players
-            self.players_to_remove = []
-            for sub in reversed(subs):
-                self.players_to_remove.append(self.current_team[sub])
-                self.current_team.pop(sub)
-
-            # run optimiser
-            self.subs, self.sub_names = self.run_optimisation()
-
-            # post process
-            self.add_players_to_current_team()
-            self.prepare_output()
-            # self.print_opt_squad_data()
-
     def get_player_data_by_id(self, n):
         # should pre allocate this for speed
         for player in self.master_table:
             if player['id'] == n:
                 player.update({'sell_price': round(float(player['now_cost']), 1) / 10})
                 return player
-
-    def add_players_to_current_team(self):
-        new_cost = 0
-        for sub in self.subs:
-            player_data = self.get_player_data_by_id(sub)
-            new_cost += round(float(player_data['now_cost']), 1) / 10
-            self.current_team.append(player_data)
-
-    def prepare_output(self):
-        # get substitutions
-        players_out = [p['web_name'] for p in self.players_to_remove]
-        subs = [i + " > " + j for i, j in zip(players_out, self.sub_names)]
-        new_team_score = score_team(self.current_team, self.opt_parameter)
-        optimisation_data = {
-            'subs': subs
-        }
-        optimisation_data.update(new_team_score)
-        optimisation_data.update(self.old_team_score)
-        self.output.append(optimisation_data)
-
-        if new_team_score[self.opt_parameter] > self.best_score:
-            self.best_score = new_team_score[self.opt_parameter]
-            self.best_team = self.current_team
-            self.best_subs = subs
-
-    def get_subs(self):
-        team_list = list(range(0, 15))
-        self.total_iterations = len(list(itertools.combinations(team_list, self.n_subs)))
-        return itertools.combinations(team_list, self.n_subs)
 
     def define_budget(self):
         if not self.optimal_team:
@@ -216,19 +150,19 @@ class Substitution:
         else:
             self.opt_max_min = LpMaximize
 
-    def run_optimisation_new(self):
+    def run_optimisation(self):
 
-        # Declare problem instance, maximization problem
+        # Declare problem instance, max/min problem
         self.prob = LpProblem("Squad", self.opt_max_min)
 
-        # Declare decision variable x, which is 1 if a player is part of the squad and 0 else
+        # Declare decision variable x, which is 1 if a player is part of the squad else 0
         self.decision = LpVariable.matrix("decision", list(self.data_length), 0, 1, LpInteger)
 
         # Objective function -> Maximize specified optimisation parameter
         self.prob += sum(self.opt_list[i] * self.decision[i] for i in self.data_length)
 
         # Constraint definition
-        self.add_sub_constraints_new()
+        self.add_sub_constraints()
 
         # solve problem
         self.prob.solve()
@@ -236,82 +170,26 @@ class Substitution:
         # extract selected players and return
         return [self.id_list[i] for i in self.data_length if self.decision[i].varValue]
 
-    def add_sub_constraints_new(self):
-
-        # idea to improve the substitution simulation:
-        # create a full player list with 'switches' only on players previously owned
-        # i.e. 1 on players owned and 0 on players not owned
-        # then add a constraint of the following form:
-        # owned_player_switches * decision == (15 - n_subs)
+    def add_sub_constraints(self):
 
         # team constraints
+        # maximum of 3 players per team
         for team in self.team_constraints:
             self.prob += sum(self.team_constraints[team][i] * self.decision[i] for i in self.data_length) <= 3
 
         # position constraints
+        # constrains the team to have 2 GK, 5 DEF, 5 MIN and 3 FW
         for pos in self.pos_constraints:
             self.prob += sum(self.pos_constraints[pos][i] * self.decision[i] for i in self.data_length) == \
                          self.max_players_per_position[pos]
 
         # price constraint
+        # limits the overall price of the team
         self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= self.max_price  # cost
 
-        # players in original squad constraint
+        # initial squad constraint
+        # ensures that the final team has (15 - number of subs) players from the initial team
         self.prob += sum(self.in_team_constraints[i] * self.decision[i] for i in self.data_length) == 15 - self.n_subs
-
-
-    def run_optimisation(self):
-
-        # Declare problem instance, maximization problem
-        self.prob = LpProblem("Squad", self.opt_max_min)
-
-        # Declare decision variable x, which is 1 if a player is part of the squad and 0 else
-        self.decision = LpVariable.matrix("decision", list(self.data_length), 0, 1, LpInteger)
-
-        # Objective function -> Maximize specified optimisation parameter
-        self.prob += sum(self.opt_list[i] * self.decision[i] for i in self.data_length)
-
-        # add constraints
-        self.add_sub_constraints()
-
-        # solve problem
-        self.prob.solve()
-
-        # extract selected players and return
-        return [self.id_list[i] for i in self.data_length if self.decision[i].varValue], [self.player_list[i] for i in
-                                                                                          self.data_length if
-                                                                                          self.decision[i].varValue]
-
-    def add_sub_constraints(self):
-
-        # idea to improve the substitution simulation:
-        # create a full player list with 'switches' only on players previously owned
-        # i.e. 1 on players owned and 0 on players not owned
-        # then add a constraint of the following form:
-        # owned_player_switches * decision == (15 - n_subs)
-
-        # calculate new budget
-        player_out_cost = sum(float(p['sell_price']) for p in self.players_to_remove)
-        new_budget = (self.account_data['bank'] / 10) + player_out_cost
-
-        # calculate positions being removed
-        remove_positions = [p['position'] for p in self.players_to_remove]
-
-        # team constraints
-        team_id_list = [p['team'] for p in self.current_team]
-        for team in self.team_constraints:
-            self.prob += sum(
-                self.team_constraints[team][i] * self.decision[i] for i in self.data_length) + team_id_list.count(
-                team) <= 3
-
-        # position constraints
-        for pos in self.pos_constraints:
-            self.prob += sum(
-                self.pos_constraints[pos][i] * self.decision[i] for i in self.data_length) == remove_positions.count(
-                pos)
-
-        # total cost constraint
-        self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= new_budget
 
 
 class Wildcard:
@@ -338,8 +216,8 @@ class Wildcard:
         # construct optimisation parameters lists
         self.player_list = [p['web_name'] for p in self.master_table]
         self.id_list = [p['id'] for p in self.master_table]
-        self.team_list = [p['team'] for p in self.master_table]
-        self.master_team_list = [p['id'] for p in self.master_table]
+        # self.team_list = [p['team'] for p in self.master_table]
+        # self.master_team_list = [p['id'] for p in self.master_table]
         self.price_list = [float(p['now_cost']) / 10 for p in self.master_table]
 
         # use the number of games in the next gameweek to weight the optimisation parameter

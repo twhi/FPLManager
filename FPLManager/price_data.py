@@ -18,8 +18,9 @@ class PriceData:
         events = [event for event in events if 'Network.response' in event['method']]
 
         for event in events:
-            if 'http://www.fplstatistics.co.uk/Home/AjaxPrices' in event['params']['response']['url']:
-                return event['params']['response']['url']
+            if 'response' in event['params']:
+                if 'http://www.fplstatistics.co.uk/Home/AjaxPrices' in event['params']['response']['url']:
+                    return event['params']['response']['url']
 
     def get_player_stats_data(self):
         return json.loads(self.web_object.session.get(stats_url).text)['aaData']
