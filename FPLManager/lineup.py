@@ -80,13 +80,11 @@ class Lineup:
         print('Subs:')
         for p in self.lineup['subs']:
             print(p['position'], end=' ')
-            print(p['web_name'], ' (', p['team_name'], '), ', self.param, '=', p[self.param], sep='', end=' ')
+            print(p['web_name'], ' (', p['team_name'], '), ', self.param, ' = ', p[self.param], sep='', end=' ')
             if p['web_name'] == self.lineup['captain']:
                 print('(c)', end=' ')
             print('')
         print('\n')
-
-
 
         print('Starting 11\'s', self.param, '-', round(self.lineup['score'], 1))
         print('Team cost £', self.lineup['price'])
