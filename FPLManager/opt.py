@@ -1,7 +1,7 @@
-from pulp import LpMinimize, LpMaximize, LpProblem, LpVariable, LpInteger
-import itertools
 import csv
 from time import gmtime, strftime
+
+from pulp import LpMinimize, LpMaximize, LpProblem, LpVariable, LpInteger
 
 
 def score_team(t, opt):
@@ -17,15 +17,15 @@ def score_team(t, opt):
 
 class Substitution:
 
-    def __init__(self, opt_parameter, data, optimal_team=False, n_subs=2):
+    def __init__(self, opt_parameter, data, budget=999, n_subs=2, desired=[]):
         # set instance variables
+        self.max_price = budget
         self.prob = None
         self.decision = None
         self.opt_max_min = None
+        self.desired = desired
         self.n_subs = n_subs
         self.opt_parameter = opt_parameter
-        self.optimal_team = optimal_team
-        self.max_price = 999
         self.output = []
         self.max_players_per_position = {
             'G': 2,
@@ -40,16 +40,25 @@ class Substitution:
         self.account_data = data.account_data
 
         self.define_opt_type()
-        self.define_budget()
 
         # construct optimisation parameters lists
+
+        self.mark_desired()
+        self.desired_constraints = [p['desired'] for p in self.master_table]
+
         self.player_list = [p['web_name'] for p in self.master_table]
         self.id_list = [p['id'] for p in self.master_table]
         self.price_list = [float(item) / 10 for item in [p['now_cost'] for p in self.master_table]]
 
         # use the number of games in the next gameweek to weight the optimisation parameter
         # need to be VERY careful if this is a good idea or not
-        self.opt_list = [float(p[self.opt_parameter]) * p['next_gameweek'] for p in self.master_table]
+
+        self.opt_list = []
+        for p in self.master_table:
+            if p[self.opt_parameter]:
+                self.opt_list.append(float(p[self.opt_parameter]) * p['next_gameweek'])
+            else:
+                self.opt_list.append(0)
         # self.opt_list = [float(p[self.opt_parameter])for p in self.master_table]
 
         self.score_current_team()
@@ -65,14 +74,29 @@ class Substitution:
 
         # get length of data
         self.data_length = range(len(self.player_list))
-
         self.squad_ids = self.run_optimisation()
         self.squad = self.lookup_team_by_id()
 
+    def mark_desired(self):
+        for p in self.master_table:
+            p['desired'] = 0
+
+        for des in self.desired:
+            for p in self.master_table:
+                if des == p['web_name']:
+                    p['desired'] = 1
+
+    def calculate_improvement(self):
+        old_squad_score = sum(float(p[self.opt_parameter]) for p in self.team_data)
+        new_squad_score = sum(float(p[self.opt_parameter]) for p in self.squad)
+        return old_squad_score, new_squad_score
+
     def extract_subs(self):
+        # get players that are being subbed out
         existing_player_u = [i for i in self.team_data if i not in self.squad]
         existing_player = sorted(existing_player_u, key=lambda k: k['position'], reverse=True)
 
+        # get players that are being subbed in
         sub_u = [i for i in self.squad if i not in self.team_data]
         sub = sorted(sub_u, key=lambda k: k['position'], reverse=True)
 
@@ -139,10 +163,6 @@ class Substitution:
                 player.update({'sell_price': round(float(player['now_cost']), 1) / 10})
                 return player
 
-    def define_budget(self):
-        if not self.optimal_team:
-            self.max_price = self.account_data['bank'] / 10 + self.account_data['total_balance']
-
     def define_opt_type(self):
         params_to_min = ['3_game_difficulty', '3_game_difficulty_n', 'price']
         if self.opt_parameter in params_to_min:
@@ -191,16 +211,19 @@ class Substitution:
         # ensures that the final team has (15 - number of subs) players from the initial team
         self.prob += sum(self.in_team_constraints[i] * self.decision[i] for i in self.data_length) == 15 - self.n_subs
 
+        # desired player constraint
+        self.prob += sum(self.desired_constraints[i] * self.decision[i] for i in self.data_length) == len(self.desired)
+
 
 class Wildcard:
-    def __init__(self, opt_parameter, data, optimal_team=False):
+    def __init__(self, opt_parameter, data, budget, desired=[]):
         # set instance variables
         self.prob = None
         self.decision = None
         self.opt_max_min = None
+        self.desired = desired
         self.opt_parameter = opt_parameter
-        self.optimal_team = optimal_team
-        self.max_price = 999
+        self.max_price = budget
         self.max_players_per_position = {
             'G': 2,
             'D': 5,
@@ -218,24 +241,43 @@ class Wildcard:
         self.id_list = [p['id'] for p in self.master_table]
         # self.team_list = [p['team'] for p in self.master_table]
         # self.master_team_list = [p['id'] for p in self.master_table]
+
         self.price_list = [float(p['now_cost']) / 10 for p in self.master_table]
 
         # use the number of games in the next gameweek to weight the optimisation parameter
         # need to be VERY careful if this is a good idea or not
-        self.opt_list = [float(p[self.opt_parameter]) * p['next_gameweek'] for p in self.master_table]
+        self.opt_list = []
+        for p in self.master_table:
+            if p[self.opt_parameter]:
+                self.opt_list.append(float(p[self.opt_parameter]) * p['next_gameweek'])
+            else:
+                self.opt_list.append(0)
+
+        # self.opt_list = [float(p[self.opt_parameter]) * p['next_gameweek'] for p in self.master_table]
         # self.opt_list = [float(p[self.opt_parameter]) for p in self.master_table]
 
         # calculate more parameters
         self.define_opt_type()
-        self.define_budget()
 
         # create constraint containers
+        self.mark_desired()
+        self.desired_constraints = [p['desired'] for p in self.master_table]
+
         self.pos_constraints = self.create_pos_constraints()
         self.team_constraints = self.create_team_constraints()
 
         self.data_length = range(len(self.player_list))
         self.squad_ids = self.run_optimisation()
         self.squad = self.lookup_team_by_id()
+
+    def mark_desired(self):
+        for p in self.master_table:
+            p['desired'] = 0
+
+        for des in self.desired:
+            for p in self.master_table:
+                if des == p['web_name']:
+                    p['desired'] = 1
 
     def lookup_team_by_id(self):
         team_list = []
@@ -338,6 +380,8 @@ class Wildcard:
         # solve problem
         self.prob.solve()
 
+        print(self.prob.status)
+
         # extract selected players and return
         return [self.id_list[i] for i in self.data_length if self.decision[i].varValue]
 
@@ -354,3 +398,6 @@ class Wildcard:
 
         # price constraint
         self.prob += sum(self.price_list[i] * self.decision[i] for i in self.data_length) <= self.max_price  # cost
+
+        # desired player constraint
+        self.prob += sum(self.desired_constraints[i] * self.decision[i] for i in self.data_length) == len(self.desired)
