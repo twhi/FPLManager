@@ -1,9 +1,11 @@
 import json
+
 import requests
 
 from FPLManager.caching import Caching
 from FPLManager.fpl_data import FplData
 from FPLManager.price_data import PriceData
+
 
 class ProcessData(FplData, PriceData, Caching):
 
@@ -35,9 +37,11 @@ class ProcessData(FplData, PriceData, Caching):
         self.get_game_difficulties()
         self.get_price_data()
         self.get_stats_data()
+        self.top_50_data()
         self.get_player_position()
         self.team_list = self.get_team_list()
-        self.account_data['total_balance'] = sum(p['sell_price'] for p in self.team_list) + (self.account_data['bank']/10)
+        self.account_data['total_balance'] = sum(p['sell_price'] for p in self.team_list) + (
+                    self.account_data['bank'] / 10)
         self.add_selling_price()
 
     def add_selling_price(self):
@@ -59,7 +63,6 @@ class ProcessData(FplData, PriceData, Caching):
         for idx, player in enumerate(reversed(self.master_table)):
             if float(player['ep_next']) > 0.0:
                 result.append(player)
-                # print(player['web_name'], player['ep_next'], player['team_name'], sep=';')
         self.master_table = result
 
     def get_player_position(self):
@@ -95,6 +98,16 @@ class ProcessData(FplData, PriceData, Caching):
             # if the player isn't found then give them terrible attributes so that they're not accidentally used
             if not player_found:
                 p['price_change'] = -300
+
+    def top_50_data(self):
+        for p in self.master_table:
+            p['top_50_count'] = 0
+
+        for p in self.master_table:
+            for player in self.player_top_50_data:
+                if player[1] == p['web_name'] and player[2] == p['team_name']:
+                    p['top_50_count'] = int(player[0])
+                    break
 
     def get_stats_data(self):
         for p in self.master_table:
@@ -143,7 +156,6 @@ class ProcessData(FplData, PriceData, Caching):
         game_difficulties = dict(zip(team_list, difficulty_list))
         game_types = dict(zip(team_list, gw_type_list))
 
-
         # append the difficulty to the master table for each player
         for player in self.master_table:
             player['playing_next_id'] = playing_next_id[player['team']]
@@ -156,7 +168,6 @@ class ProcessData(FplData, PriceData, Caching):
         for f in fixtures:
             if f['event'] == next_gw['id']:
                 return f['team_h'], f['team_a']
-
 
     @staticmethod
     def get_gw_type(next_gw, fixtures):

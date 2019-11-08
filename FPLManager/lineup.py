@@ -46,6 +46,8 @@ class Lineup:
             # calculate the score
             score = sum(float(p[self.param]) for p in lineup)
 
+            total_score = score + sum(float(p[self.param]) for p in subs)
+
             # calculate the price
             price = sum(float(p['sell_price']) for p in lineup) + sum(float(p['sell_price']) for p in subs)
 
@@ -58,6 +60,7 @@ class Lineup:
                 best = {
                     'formation': self.formations[formation],
                     'score': score,
+                    'total_score':total_score,
                     'lineup': lineup,
                     'captain': cap['web_name'],
                     'subs': subs,
@@ -87,4 +90,5 @@ class Lineup:
         print('\n')
 
         print('Starting 11\'s', self.param, '-', round(self.lineup['score'], 1))
-        print('Team cost £', self.lineup['price'])
+        print('Total Team\'s', self.param, '-', round(self.lineup['total_score'], 1))
+        print('Team cost £', round(self.lineup['price'], 1))

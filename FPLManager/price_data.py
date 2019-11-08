@@ -1,5 +1,5 @@
 import json
-from FPLManager.player_stats_url import stats_url
+from FPLManager.player_stats_url import stats_url, top_50_url
 
 
 class PriceData:
@@ -10,6 +10,7 @@ class PriceData:
         self.price_data_url = self.find_price_data_url()
         self.player_price_data = self.get_player_price_data()
         self.player_stats_data = self.get_player_stats_data()
+        self.player_top_50_data = self.get_top_50_data()
 
     def find_price_data_url(self):
         self.web_object.driver.get('http://www.fplstatistics.co.uk/')
@@ -24,6 +25,9 @@ class PriceData:
 
     def get_player_stats_data(self):
         return json.loads(self.web_object.session.get(stats_url).text)['aaData']
+
+    def get_top_50_data(self):
+        return json.loads(self.web_object.session.get(top_50_url).text)['aaData']
 
     def get_player_price_data(self):
         return json.loads(self.web_object.session.get(self.price_data_url).text)['aaData']

@@ -1,3 +1,4 @@
+*.lp
 *.mps
 *.csv
 .idea/

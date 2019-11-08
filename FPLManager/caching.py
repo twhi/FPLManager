@@ -18,6 +18,7 @@ class Caching:
         'team_info',
         'player_price_data',
         'player_stats_data',
+        'player_top_50_data',
         'team_ids',
         'username_hash',
         ]
