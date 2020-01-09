@@ -2,9 +2,9 @@ import os.path
 import time
 import hashlib
 
-from FPLManager.process import ProcessData
-from FPLManager.web_stuff import WebStuff
-from FPLManager.caching import Caching
+from process import ProcessData
+from web_stuff import WebStuff
+from caching import Caching
 
 
 class GetData(Caching):

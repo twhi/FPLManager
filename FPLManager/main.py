@@ -1,8 +1,8 @@
 import csv
 
-from FPLManager.get_data import GetData
-from FPLManager.lineup import Lineup
-from FPLManager.opt import Opt
+from get_data import GetData
+from lineup import Lineup
+from opt import Opt
 
 
 def get_credentials():
@@ -65,7 +65,7 @@ params = ['bonus',
 
 opt_param = 'ep_next'
 num_subs = 1
-desired = []
+desired = ['Lundstram', 'De Bruyne', 'Maddison', 'Vardy', 'Abraham']
 remove = []
 
 creds = get_credentials()
@@ -74,9 +74,9 @@ if creds:
     budget = round(processed_data.account_data['total_balance'], 1)
 
     # transfer sim
-    opt(opt_param, budget, desired, remove, num_subs)
+    # opt(opt_param, budget, desired, remove, num_subs)
 
     # wildcard sim
-    # opt(opt_param, budget, desired, remove)
+    opt(opt_param, budget, desired, remove)
 
 ender = True

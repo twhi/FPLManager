@@ -103,6 +103,7 @@ class Opt:
             for p in self.master_table:
                 if rem == p['web_name']:
                     p['remove'] = 1
+                    
 
     def mark_players_to_include(self):
         for p in self.master_table:

@@ -1,5 +1,5 @@
 import json
-from FPLManager.player_stats_url import stats_url, top_50_url
+from player_stats_url import stats_url, top_50_url
 
 
 class PriceData:

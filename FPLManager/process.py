@@ -2,9 +2,9 @@ import json
 
 import requests
 
-from FPLManager.caching import Caching
-from FPLManager.fpl_data import FplData
-from FPLManager.price_data import PriceData
+from caching import Caching
+from fpl_data import FplData
+from price_data import PriceData
 
 
 class ProcessData(FplData, PriceData, Caching):
